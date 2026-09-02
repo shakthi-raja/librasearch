@@ -16,9 +16,17 @@
     "format": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "check": "biome check . && tsc --noEmit",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db",
+    "test:watch": "vitest --project unit",
+    "db:migrate": "tsx scripts/migrate.ts up",
+    "db:status": "tsx scripts/migrate.ts status",
+    "db:reset": "tsx scripts/db-reset.ts"
   },
   "dependencies": {
+    "mysql2": "3.24.2",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -33,6 +41,8 @@
     "@types/react-dom": "19.2.5",
     "lefthook": "2.1.12",
     "tailwindcss": "4.3.3",
-    "typescript": "7.0.2"
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
   }
 }
