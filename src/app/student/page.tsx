@@ -1,15 +1,15 @@
-import { signOutAction } from "@/server/actions/sign-out";
-import { requireUser } from "@/server/auth/current";
+import type { Metadata } from "next";
+import { EmptyState, PageHeader } from "@/components/layout/app-shell";
 
-export default async function StudentHomePage() {
-  const user = await requireUser("STUDENT");
+export const metadata: Metadata = { title: "Overview" };
+
+export default function StudentHomePage() {
   return (
-    <main>
-      <h1>Student desk</h1>
-      <p>Signed in as {user.fullName}</p>
-      <form action={signOutAction}>
-        <button type="submit">Sign out</button>
-      </form>
-    </main>
+    <>
+      <PageHeader title="Your desk" description="Loans, holds and fines, with what is due first." />
+      <EmptyState title="Nothing borrowed">
+        Books you borrow at the issue desk show here with their due dates and renewals left.
+      </EmptyState>
+    </>
   );
 }

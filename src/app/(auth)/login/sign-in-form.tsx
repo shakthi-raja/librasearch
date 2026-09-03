@@ -1,43 +1,72 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { type SignInState, signInAction } from "./actions";
 
 export function SignInForm({ next }: { next: string | undefined }) {
   const [state, action, pending] = useActionState<SignInState, FormData>(signInAction, {});
+  const identifierRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // after a failed submit, focus goes to the first field that needs attention
+  useEffect(() => {
+    if (state.fieldErrors?.identifier || state.error) identifierRef.current?.focus();
+    else if (state.fieldErrors?.password) passwordRef.current?.focus();
+  }, [state]);
+
+  const identifierError = state.fieldErrors?.identifier;
+  const passwordError = state.fieldErrors?.password;
 
   return (
-    <form action={action} noValidate>
+    <form action={action} noValidate className="grid gap-[var(--space-xs)]">
       {next ? <input type="hidden" name="next" value={next} /> : null}
-      {state.error ? <p role="alert">{state.error}</p> : null}
-
-      <label htmlFor="identifier">University ID or email</label>
-      <input
-        id="identifier"
-        name="identifier"
-        autoComplete="username"
-        defaultValue={state.identifier}
-        aria-invalid={state.fieldErrors?.identifier ? true : undefined}
-        aria-describedby={state.fieldErrors?.identifier ? "identifier-error" : undefined}
-        required
-      />
-      {state.fieldErrors?.identifier ? (
-        <p id="identifier-error">{state.fieldErrors.identifier}</p>
+      {state.error ? (
+        <p role="alert" className="alert mb-[var(--space-sm)]">
+          {state.error}
+        </p>
       ) : null}
 
-      <label htmlFor="password">Password</label>
-      <input
-        id="password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        aria-invalid={state.fieldErrors?.password ? true : undefined}
-        aria-describedby={state.fieldErrors?.password ? "password-error" : undefined}
-        required
-      />
-      {state.fieldErrors?.password ? <p id="password-error">{state.fieldErrors.password}</p> : null}
+      <div>
+        <div className="field">
+          <label htmlFor="identifier">University ID or email</label>
+          <input
+            ref={identifierRef}
+            id="identifier"
+            name="identifier"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            defaultValue={state.identifier}
+            aria-invalid={identifierError ? true : undefined}
+            aria-describedby={identifierError ? "identifier-error" : undefined}
+            required
+          />
+        </div>
+        <p id="identifier-error" className="field-message">
+          {identifierError}
+        </p>
+      </div>
 
-      <button type="submit" disabled={pending}>
+      <div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            ref={passwordRef}
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            aria-invalid={passwordError ? true : undefined}
+            aria-describedby={passwordError ? "password-error" : undefined}
+            required
+          />
+        </div>
+        <p id="password-error" className="field-message">
+          {passwordError}
+        </p>
+      </div>
+
+      <button type="submit" className="btn btn-primary btn-lg w-full" disabled={pending}>
         {pending ? "Signing in" : "Sign in"}
       </button>
     </form>

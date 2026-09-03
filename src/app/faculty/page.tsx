@@ -1,15 +1,18 @@
-import { signOutAction } from "@/server/actions/sign-out";
-import { requireUser } from "@/server/auth/current";
+import type { Metadata } from "next";
+import { EmptyState, PageHeader } from "@/components/layout/app-shell";
 
-export default async function FacultyHomePage() {
-  const user = await requireUser("FACULTY");
+export const metadata: Metadata = { title: "Overview" };
+
+export default function FacultyHomePage() {
   return (
-    <main>
-      <h1>Faculty desk</h1>
-      <p>Signed in as {user.fullName}</p>
-      <form action={signOutAction}>
-        <button type="submit">Sign out</button>
-      </form>
-    </main>
+    <>
+      <PageHeader
+        title="Your courses"
+        description="Syllabus units for the offerings you coordinate, and the chapters that cover them."
+      />
+      <EmptyState title="No offerings yet">
+        Offerings you coordinate this term show here once the library adds them.
+      </EmptyState>
+    </>
   );
 }
