@@ -3,6 +3,7 @@ import { adminEnvSchema, appEnvSchema, EnvError, parseEnv } from "@/lib/config/s
 
 const valid = {
   DB_NAME: "librasearch",
+  DB_AUTH_PASSWORD: "auth-secret-001",
   DB_STUDENT_PASSWORD: "student-secret-1",
   DB_FACULTY_PASSWORD: "faculty-secret-1",
   DB_LIBRARIAN_PASSWORD: "librarian-secret-1",

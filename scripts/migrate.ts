@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { adminConnection, adminEnv, MIGRATIONS_DIR } from "./lib/admin-db";
+import { accounts, provisionAccounts } from "./lib/accounts";
+import { accountsEnv, adminConnection, adminEnv, MIGRATIONS_DIR } from "./lib/admin-db";
 import { migrate, status } from "./lib/migrator";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -24,6 +25,9 @@ async function main() {
       onApplied: (m, ms) => out(`applied  ${m.file}  ${ms} ms`),
     });
     out(applied.length === 0 ? "schema is up to date" : `${applied.length} migration(s) applied`);
+    const list = accounts(accountsEnv());
+    await provisionAccounts(db, list);
+    out(`provisioned ${list.map((a) => a.user).join(", ")}`);
   } finally {
     await db.end();
   }

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { adminConnection, adminEnv, MIGRATIONS_DIR } from "./lib/admin-db";
+import { accounts, provisionAccounts } from "./lib/accounts";
+import { accountsEnv, adminConnection, adminEnv, MIGRATIONS_DIR } from "./lib/admin-db";
 import { migrate } from "./lib/migrator";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -27,6 +28,7 @@ async function main() {
       onApplied: (m, ms) => out(`applied  ${m.file}  ${ms} ms`),
     });
     out(`${applied.length} migration(s) applied`);
+    await provisionAccounts(db, accounts(accountsEnv()));
   } finally {
     await db.end();
   }

@@ -8,7 +8,7 @@ pre-commit:
       stage_fixed: true
     - name: typecheck
       glob: "*.{ts,tsx}"
-      run: pnpm exec tsc --noEmit
+      run: pnpm exec next typegen > /dev/null && pnpm exec tsc --noEmit
 
 commit-msg:
   jobs:

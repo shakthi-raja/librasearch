@@ -1,8 +1,18 @@
 import mysql from "mysql2/promise";
-import { type AdminEnv, adminEnvSchema, parseEnv } from "../../src/lib/config/schema";
+import {
+  type AccountsEnv,
+  type AdminEnv,
+  accountsEnvSchema,
+  adminEnvSchema,
+  parseEnv,
+} from "../../src/lib/config/schema";
 
 export function adminEnv(): AdminEnv {
   return parseEnv(adminEnvSchema, process.env);
+}
+
+export function accountsEnv(): AccountsEnv {
+  return parseEnv(accountsEnvSchema, process.env);
 }
 
 /** Connection as the schema owner. Used by migrations, seed and tests, never by the app. */
