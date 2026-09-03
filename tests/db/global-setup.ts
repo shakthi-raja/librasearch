@@ -1,4 +1,5 @@
-import { adminEnvSchema, parseEnv } from "@/lib/config/schema";
+import { accountsEnvSchema, parseEnv } from "@/lib/config/schema";
+import { accounts, provisionAccounts } from "../../scripts/lib/accounts";
 import { adminConnection, MIGRATIONS_DIR } from "../../scripts/lib/admin-db";
 import { migrate } from "../../scripts/lib/migrator";
 import { loadDotEnv, testDatabaseName } from "../support/load-env";
@@ -7,7 +8,7 @@ import { loadDotEnv, testDatabaseName } from "../support/load-env";
 // run proves the schema builds from empty.
 export default async function setup() {
   loadDotEnv();
-  const env = parseEnv(adminEnvSchema, { ...process.env, DB_NAME: testDatabaseName() });
+  const env = parseEnv(accountsEnvSchema, { ...process.env, DB_NAME: testDatabaseName() });
 
   const server = await adminConnection(env, { database: false });
   try {
@@ -22,6 +23,7 @@ export default async function setup() {
   const db = await adminConnection(env);
   try {
     await migrate(db, MIGRATIONS_DIR);
+    await provisionAccounts(db, accounts(env));
   } finally {
     await db.end();
   }

@@ -16,6 +16,8 @@ export const appEnvSchema = z.object({
   DB_HOST: z.string().min(1).default("127.0.0.1"),
   DB_PORT: port.default(3307),
   DB_NAME: z.string().regex(/^[a-z][a-z0-9_]*$/, "lowercase letters, digits and underscores"),
+  DB_AUTH_USER: z.string().min(1).default("app_auth"),
+  DB_AUTH_PASSWORD: secret,
   DB_STUDENT_USER: z.string().min(1).default("app_student"),
   DB_STUDENT_PASSWORD: secret,
   DB_FACULTY_USER: z.string().min(1).default("app_faculty"),
@@ -53,7 +55,14 @@ export const adminEnvSchema = z.object({
   DB_ADMIN_PASSWORD: secret,
 });
 
+/** Provisioning creates one database account per application role. */
+export const accountsEnvSchema = adminEnvSchema.extend({
+  DB_AUTH_USER: appEnvSchema.shape.DB_AUTH_USER,
+  DB_AUTH_PASSWORD: secret,
+});
+
 export type AppEnv = z.infer<typeof appEnvSchema>;
+export type AccountsEnv = z.infer<typeof accountsEnvSchema>;
 export type AdminEnv = z.infer<typeof adminEnvSchema>;
 
 export class EnvError extends Error {
