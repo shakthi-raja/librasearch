@@ -1,0 +1,17 @@
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_0900_ai_ci
+default-time-zone = '+00:00'
+sql-mode = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY
+
+# scheduled events drive hold expiry, fine accrual and policy reversion
+event-scheduler = ON
+
+# routines and triggers are created by the migration user with binary logging on
+log-bin-trust-function-creators = ON
+
+innodb-lock-wait-timeout = 10
+max-connections = 200
+
+[client]
+default-character-set = utf8mb4

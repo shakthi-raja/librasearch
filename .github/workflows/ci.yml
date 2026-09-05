@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "dev/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: .
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  LEFTHOOK: "0"
+  # throwaway credentials for the CI database only
+  NODE_ENV: test
+  DB_HOST: 127.0.0.1
+  DB_PORT: "3307"
+  DB_NAME: librasearch
+  DB_ADMIN_USER: root
+  DB_ADMIN_PASSWORD: ci-root-password-0001
+  DB_AUTH_PASSWORD: ci-auth-password-0001
+  DB_STUDENT_PASSWORD: ci-student-password-01
+  DB_FACULTY_PASSWORD: ci-faculty-password-01
+  DB_LIBRARIAN_PASSWORD: ci-librarian-password-1
+  REDIS_URL: redis://:ci-redis-password-01@127.0.0.1:6380/0
+
+jobs:
+  check:
+    name: lint, types, unit tests, build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec biome ci .
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+      - run: pnpm build
+
+  db:
+    name: migrations and database tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start mysql with the project configuration
+        run: |
+          docker run -d --name mysql -p 3307:3306 \
+            -e MYSQL_ROOT_PASSWORD="$DB_ADMIN_PASSWORD" -e MYSQL_DATABASE="$DB_NAME" -e TZ=UTC \
+            -v "$PWD/docker/mysql/conf.d:/etc/mysql/conf.d:ro" \
+            mysql:9.7.1
+          for i in $(seq 1 60); do
+            docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -p"$DB_ADMIN_PASSWORD" --silent && exit 0
+            sleep 2
+          done
+          docker logs mysql
+          exit 1
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Every migration applies to an empty schema
+        run: pnpm db:migrate
+      - name: Migrations are idempotent
+        run: pnpm db:migrate | grep -q "schema is up to date"
+      - run: pnpm db:seed
+      - run: pnpm test:db
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm audit --prod --audit-level high
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

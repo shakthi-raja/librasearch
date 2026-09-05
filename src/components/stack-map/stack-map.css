@@ -1,0 +1,147 @@
+.stack-map {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-body);
+}
+
+.sm-paper {
+  fill: var(--color-paper-3);
+}
+
+.sm-column {
+  fill: var(--color-contour);
+  opacity: 0.55;
+}
+
+.sm-water {
+  fill: color-mix(in oklab, var(--color-water) 18%, var(--color-paper-3));
+  stroke: var(--color-water);
+  stroke-width: 1.2;
+}
+
+.sm-table {
+  fill: none;
+  stroke: var(--color-water);
+  stroke-width: 1;
+}
+
+.sm-hatch-line {
+  stroke: var(--color-contour);
+  stroke-width: 1.4;
+}
+
+.sm-rack {
+  fill: url(#sm-hatch);
+  stroke: var(--color-ink-2);
+  stroke-width: 1;
+}
+
+.sm-rack-code {
+  font-family: var(--font-figure);
+  font-size: 9px;
+  fill: var(--color-ink-2);
+}
+
+.sm-place {
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--color-ink-2);
+}
+
+.sm-reserve {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+}
+
+.sm-desk {
+  fill: var(--color-paper-2);
+  stroke: var(--color-ink);
+  stroke-width: 1.2;
+}
+
+.sm-wall {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 4;
+  stroke-linejoin: miter;
+}
+
+.sm-gate {
+  stroke: var(--color-ink);
+  stroke-width: 2;
+}
+
+.sm-route {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 5;
+}
+
+.sm-grain {
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.sm-crease {
+  fill: color-mix(in oklab, var(--color-ink) 6%, transparent);
+}
+
+.sm-crease-shade {
+  stop-color: var(--color-ink);
+  stop-opacity: 0.08;
+}
+
+.sm-crease-lit {
+  stop-color: var(--color-sheet);
+  stop-opacity: 0.5;
+}
+
+.sm-pin-mark {
+  fill: var(--color-ink);
+  stroke: var(--color-paper-2);
+  stroke-width: 2;
+}
+
+.sm-pin-open .sm-pin-mark {
+  fill: var(--color-accent);
+  stroke: var(--color-ink);
+  stroke-width: 1.5;
+}
+
+.sm-tag {
+  fill: var(--color-ink);
+}
+
+.sm-tag-text {
+  font-family: var(--font-figure);
+  font-size: 12px;
+  fill: var(--color-paper);
+}
+
+.sm-pin {
+  animation: sm-pin-land var(--dur-long) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 180ms + 240ms);
+}
+
+.sm-pin > * {
+  transform-box: fill-box;
+}
+
+@keyframes sm-pin-land {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-pin {
+    animation: none;
+  }
+}

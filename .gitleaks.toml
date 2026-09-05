@@ -1,0 +1,9 @@
+title = "librasearch"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Throwaway CI credentials and documented demo values"
+paths = ['''\.env\.example''']
+regexes = ['''ci-[a-z]+-password-[0-9]+''']
