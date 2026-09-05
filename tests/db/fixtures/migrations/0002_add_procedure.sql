@@ -1,0 +1,10 @@
+DELIMITER $$
+
+CREATE PROCEDURE fixture_count()
+BEGIN
+  DECLARE n INT;
+  SELECT COUNT(*) INTO n FROM fixture_items;
+  SELECT n AS total;
+END$$
+
+DELIMITER ;

@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next build
+.next/
+out/
+.turbo/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# generated database artefacts
+db/data/
+*.sql.gz
+*.dump
+
+# editor and os
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+
+# logs and coverage
+*.log
+logs/
+coverage/
+
+# test output
+playwright-report/
+test-results/
+blob-report/
+
+# embedding model cache
+.cache/
+hf-cache/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
