@@ -5,9 +5,18 @@ export type NavItem = { href: Route; label: string };
 
 /** Destinations per role. Items join as their screens land. */
 export const NAV: Record<RoleName, NavItem[]> = {
-  STUDENT: [{ href: "/student", label: "Overview" }],
-  FACULTY: [{ href: "/faculty", label: "Overview" }],
-  LIBRARIAN: [{ href: "/admin", label: "Overview" }],
+  STUDENT: [
+    { href: "/student", label: "Overview" },
+    { href: "/account", label: "Account" },
+  ],
+  FACULTY: [
+    { href: "/faculty", label: "Overview" },
+    { href: "/account", label: "Account" },
+  ],
+  LIBRARIAN: [
+    { href: "/admin", label: "Overview" },
+    { href: "/account", label: "Account" },
+  ],
 };
 
 export const ROLE_LABEL: Record<RoleName, string> = {

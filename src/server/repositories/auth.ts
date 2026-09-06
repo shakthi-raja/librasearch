@@ -9,6 +9,7 @@ export type Credential = {
   role: RoleName;
   status: AccountStatus;
   passwordHash: string;
+  lockedUntil: Date | null;
 };
 
 export type SessionRecord = {
@@ -28,31 +29,77 @@ export type SessionRecord = {
   };
 };
 
-export async function findCredential(db: Pool, identifier: string): Promise<Credential | null> {
-  const column = identifier.includes("@") ? "u.email" : "u.university_id";
-  const [rows] = await db.execute<RowDataPacket[]>(
-    `SELECT u.user_id, u.status, u.password_hash, r.role_name
-       FROM users u
-       JOIN roles r ON r.role_id = u.role_id
-      WHERE ${column} = ?`,
-    [identifier],
-  );
-  const row = rows[0];
+const CREDENTIAL_SELECT = `
+  SELECT u.user_id, u.status, u.password_hash, u.locked_until, r.role_name
+    FROM users u
+    JOIN roles r ON r.role_id = u.role_id`;
+
+function toCredential(row: RowDataPacket | undefined): Credential | null {
   if (!row) return null;
   return {
     userId: Number(row.user_id),
     role: row.role_name as RoleName,
     status: row.status as AccountStatus,
     passwordHash: String(row.password_hash),
+    lockedUntil: row.locked_until === null ? null : new Date(row.locked_until),
   };
 }
 
+export async function findCredential(db: Pool, identifier: string): Promise<Credential | null> {
+  const column = identifier.includes("@") ? "u.email" : "u.university_id";
+  const [rows] = await db.execute<RowDataPacket[]>(`${CREDENTIAL_SELECT} WHERE ${column} = ?`, [
+    identifier,
+  ]);
+  return toCredential(rows[0]);
+}
+
+export async function findCredentialById(db: Pool, userId: number): Promise<Credential | null> {
+  const [rows] = await db.execute<RowDataPacket[]>(`${CREDENTIAL_SELECT} WHERE u.user_id = ?`, [
+    userId,
+  ]);
+  return toCredential(rows[0]);
+}
+
 export async function recordLogin(db: Pool, userId: number) {
-  await db.execute("UPDATE users SET last_login_at = UTC_TIMESTAMP(3) WHERE user_id = ?", [userId]);
+  await db.execute(
+    "UPDATE users SET last_login_at = UTC_TIMESTAMP(3), failed_logins = 0, locked_until = NULL WHERE user_id = ?",
+    [userId],
+  );
+}
+
+/**
+ * Counts a failed password. The assignments run left to right, so the second
+ * and third see the incremented count: the account locks on the Nth failure
+ * and the counter starts again for the next window.
+ */
+export async function recordFailure(
+  db: Pool,
+  userId: number,
+  failures: number,
+  lockMinutes: number,
+) {
+  await db.execute(
+    `UPDATE users
+        SET failed_logins = failed_logins + 1,
+            locked_until = IF(failed_logins >= ?, UTC_TIMESTAMP(3) + INTERVAL ? MINUTE, locked_until),
+            failed_logins = IF(failed_logins >= ?, 0, failed_logins)
+      WHERE user_id = ?`,
+    [failures, lockMinutes, failures, userId],
+  );
 }
 
 export async function replacePasswordHash(db: Pool, userId: number, passwordHash: string) {
   await db.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", [passwordHash, userId]);
+}
+
+/** A real password change. Moving password_changed_at revokes every session in the database. */
+export async function changePasswordHash(db: Pool, userId: number, passwordHash: string) {
+  await db.execute(
+    `UPDATE users
+        SET password_hash = ?, password_changed_at = UTC_TIMESTAMP(3), must_change_password = FALSE
+      WHERE user_id = ?`,
+    [passwordHash, userId],
+  );
 }
 
 export async function recordAttempt(
