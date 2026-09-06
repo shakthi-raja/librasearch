@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { hash } from "@node-rs/argon2";
 import type { Connection } from "mysql2/promise";
+import { seedCatalogue } from "../db/seed/catalogue";
 import { adminConnection, adminEnv } from "./lib/admin-db";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -95,6 +96,10 @@ async function main() {
   try {
     await seedDepartments(db);
     await seedDemoUsers(db);
+    const catalogue = await seedCatalogue(db);
+    out(
+      `catalogue    ${catalogue.books} books, ${catalogue.editions} editions, ${catalogue.chapters} chapters`,
+    );
   } finally {
     await db.end();
   }
