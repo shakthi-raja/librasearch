@@ -25,12 +25,12 @@ describe("editions", () => {
   it("accepts a real isbn-13 and rejects a wrong check digit", async () => {
     const bookId = await insertBook(db, await insertCategory(db));
     await db.query(
-      "INSERT INTO editions (book_id, isbn13, edition_no, pub_year, page_count) VALUES (?, '9780078022159', 7, 2019, 1376)",
+      "INSERT INTO editions (book_id, isbn13, edition_no, pub_year, page_count) VALUES (?, '9780201616224', 1, 1999, 352)",
       [bookId],
     );
     await expectSqlError(
       db.query(
-        "INSERT INTO editions (book_id, isbn13, edition_no, pub_year, page_count) VALUES (?, '9780078022158', 8, 2020, 1376)",
+        "INSERT INTO editions (book_id, isbn13, edition_no, pub_year, page_count) VALUES (?, '9780201616223', 2, 2019, 352)",
         [bookId],
       ),
       ER.CHECK_CONSTRAINT_VIOLATED,
