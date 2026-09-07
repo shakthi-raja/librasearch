@@ -14,7 +14,7 @@ beforeAll(async () => {
   db = await adminConnection();
   deptId = await insertDepartment(db);
   const [course] = await db.query<ResultSetHeader>(
-    "INSERT INTO courses (course_code, title, dept_id, semester, credits) VALUES ('UE24CS351A', 'Database Management Systems', ?, 5, 4)",
+    "INSERT INTO courses (course_code, title, dept_id, semester, credits) VALUES ('TST24CS351A', 'Test Course', ?, 5, 4)",
     [deptId],
   );
   courseId = course.insertId;
@@ -39,6 +39,8 @@ const offering = async (coordinatorId: number | null) => {
 
 describe("academic terms", () => {
   it("allow exactly one current term", async () => {
+    // other suites may have marked a term current; this one takes the flag
+    await db.query("UPDATE academic_terms SET is_current = FALSE");
     await db.query("UPDATE academic_terms SET is_current = TRUE WHERE term_id = ?", [termId]);
     await expectSqlError(
       db.query(
