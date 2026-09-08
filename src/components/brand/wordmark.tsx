@@ -28,7 +28,7 @@ export function Wordmark() {
       className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] font-display text-lg font-semibold tracking-[-0.02em] text-ink no-underline"
     >
       <Mark />
-      <span>LibraSearch</span>
+      <span className="max-[400px]:sr-only">LibraSearch</span>
     </Link>
   );
 }

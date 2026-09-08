@@ -121,7 +121,7 @@ export function DataTable<T>({
                 data-label={column.header}
                 data-primary={column.primary ? "" : undefined}
                 className={`py-[var(--space-sm)] pr-[var(--space-md)] align-top last:pr-0 ${
-                  column.align === "end" ? "text-right tabular-nums" : ""
+                  column.align === "end" ? "text-right tabular-nums max-[40rem]:text-left" : ""
                 } ${column.className ?? ""}`}
               >
                 {column.cell(row)}

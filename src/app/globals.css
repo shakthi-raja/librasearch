@@ -270,6 +270,10 @@
       text-align: left;
     }
 
+    .data-table td > * {
+      justify-self: start;
+    }
+
     .data-table td::before {
       content: attr(data-label);
       color: var(--color-muted);
