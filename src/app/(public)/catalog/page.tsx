@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Availability } from "@/components/catalog/availability";
 import { CategoryTree } from "@/components/catalog/category-tree";
 import { type Column, DataTable } from "@/components/data/data-table";
@@ -26,7 +27,9 @@ const columns: Column<CatalogBook>[] = [
     primary: true,
     cell: (b) => (
       <div className="grid gap-0.5">
-        <span className="font-medium text-ink">{b.title}</span>
+        <Link href={`/catalog/${b.bookId}`} className="font-medium text-ink">
+          {b.title}
+        </Link>
         <span className="text-muted">{b.authors}</span>
       </div>
     ),
