@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Availability } from "@/components/catalog/availability";
 import { Highlighted } from "@/components/search/highlighted";
 import { SearchForm } from "@/components/search/search-form";
@@ -100,9 +101,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
               <ul className="ruled">
                 {books.map((b) => (
                   <li key={b.bookId} className="grid gap-1 py-[var(--space-sm)]">
-                    <span className="font-medium">
+                    <Link href={`/catalog/${b.bookId}`} className="font-medium">
                       <Highlighted text={b.title} terms={terms} />
-                    </span>
+                    </Link>
                     <span className="text-sm text-muted">
                       <Highlighted text={b.authors} terms={terms} />
                     </span>
