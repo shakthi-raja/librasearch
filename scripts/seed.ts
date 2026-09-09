@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { hash } from "@node-rs/argon2";
 import type { Connection } from "mysql2/promise";
+import { seedCatalogue } from "../db/seed/catalogue";
+import { generate } from "../db/seed/generate";
 import { adminConnection, adminEnv } from "./lib/admin-db";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -54,14 +56,17 @@ async function seedDepartments(db: Connection) {
   out(`departments  ${DEPARTMENTS.length}`);
 }
 
-async function seedDemoUsers(db: Connection) {
-  const passwordHash = await hash(DEMO_PASSWORD, {
+function demoPasswordHash() {
+  return hash(DEMO_PASSWORD, {
     algorithm: 2,
     memoryCost: 19_456,
     timeCost: 2,
     parallelism: 1,
     outputLen: 32,
   });
+}
+
+async function seedDemoUsers(db: Connection, passwordHash: string) {
   for (const user of DEMO_USERS) {
     await db.query(
       `INSERT INTO users
@@ -94,7 +99,20 @@ async function main() {
   const db = await adminConnection(adminEnv());
   try {
     await seedDepartments(db);
-    await seedDemoUsers(db);
+    const passwordHash = await demoPasswordHash();
+    await seedDemoUsers(db, passwordHash);
+    const catalogue = await seedCatalogue(db);
+    out(
+      `catalogue    ${catalogue.books} books, ${catalogue.editions} editions, ${catalogue.chapters} chapters`,
+    );
+    const people = await generate(db, passwordHash);
+    out(
+      `people       ${people.students} students, ${people.faculty} faculty, ${people.librarians} librarians`,
+    );
+    out(
+      `academics    ${people.courses} courses, ${people.units} units, ${people.enrollments} enrollments`,
+    );
+    out(`stock        ${people.copies} copies`);
   } finally {
     await db.end();
   }
