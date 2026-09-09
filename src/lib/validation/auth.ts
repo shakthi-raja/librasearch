@@ -21,3 +21,16 @@ export const signInSchema = z.object({
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    current: z.string().min(1, "Enter your current password").max(128),
+    next: password,
+    confirm: z.string(),
+  })
+  .refine((value) => value.next === value.confirm, {
+    path: ["confirm"],
+    message: "The two new passwords do not match",
+  });
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

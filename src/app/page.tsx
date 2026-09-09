@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SearchForm } from "@/components/search/search-form";
 import { StackMap } from "@/components/stack-map/stack-map";
 
 // Lending rules shown on the rack card are the library's real defaults.
@@ -15,7 +15,7 @@ export default function HomePage() {
     <>
       <SiteHeader />
       <main>
-        <section className="container-app grid items-center gap-[var(--gap-columns)] py-[var(--space-2xl)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <section className="container-app grid items-center gap-[var(--gap-columns)] grid-cols-[minmax(0,1fr)] py-[var(--space-2xl)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div className="grid gap-[var(--space-lg)]">
             <h1 className="text-[length:var(--text-4xl)] leading-none">
               Find the chapter your syllabus means.
@@ -23,11 +23,7 @@ export default function HomePage() {
             <p className="text-lg text-ink-2">
               Search by meaning, see the copy on the shelf, borrow it.
             </p>
-            <div>
-              <Link href="/login" className="btn btn-primary btn-lg">
-                Sign in
-              </Link>
-            </div>
+            <SearchForm size="hero" />
           </div>
 
           <figure className="relative m-0">

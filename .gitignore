@@ -44,3 +44,6 @@ hf-cache/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright sessions
+tests/e2e/.auth/

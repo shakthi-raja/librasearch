@@ -4,7 +4,16 @@ import type { Connection, ResultSetHeader, RowDataPacket } from "mysql2/promise"
 export const FAKE_ARGON2ID =
   "$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$7Wc0nNhPFBRY5ZQx1nqD3oFQ0r3hFjYc3n0nZqB0p1s";
 
-let sequence = 0;
+/**
+ * Next free number for a table. Test files share one schema but not module
+ * state, so identifiers come from the data, never from an in-memory counter.
+ */
+export async function nextId(db: Connection, table: string, column: string) {
+  const [rows] = await db.query<RowDataPacket[]>(
+    `SELECT COALESCE(MAX(${column}), 0) + 1 AS n FROM ${table}`,
+  );
+  return Number(rows[0]?.n);
+}
 
 export async function roleId(db: Connection, name: "STUDENT" | "FACULTY" | "LIBRARIAN") {
   const [rows] = await db.query<RowDataPacket[]>("SELECT role_id FROM roles WHERE role_name = ?", [
@@ -23,7 +32,8 @@ const letters = (n: number) => {
   return out;
 };
 
-export async function insertDepartment(db: Connection, code = `T${letters(++sequence)}`) {
+export async function insertDepartment(db: Connection, code?: string) {
+  code ??= `T${letters(await nextId(db, "departments", "dept_id"))}`;
   const [result] = await db.query<ResultSetHeader>(
     "INSERT INTO departments (dept_code, dept_name) VALUES (?, ?)",
     [code, `Department ${code}`],
@@ -36,7 +46,7 @@ export async function insertUser(
   role: "STUDENT" | "FACULTY" | "LIBRARIAN",
   overrides: Partial<{ email: string; universityId: string; deptId: number | null }> = {},
 ) {
-  const n = ++sequence;
+  const n = await nextId(db, "users", "user_id");
   const [result] = await db.query<ResultSetHeader>(
     `INSERT INTO users (role_id, dept_id, university_id, full_name, email, password_hash)
      VALUES (?, ?, ?, ?, ?, ?)`,
