@@ -5,7 +5,12 @@ export type Account = { user: string; password: string; role: string };
 
 /** Application accounts and the database role each one is granted. */
 export function accounts(env: AccountsEnv): Account[] {
-  return [{ user: env.DB_AUTH_USER, password: env.DB_AUTH_PASSWORD, role: "r_auth" }];
+  return [
+    { user: env.DB_AUTH_USER, password: env.DB_AUTH_PASSWORD, role: "r_auth" },
+    { user: env.DB_STUDENT_USER, password: env.DB_STUDENT_PASSWORD, role: "r_student" },
+    { user: env.DB_FACULTY_USER, password: env.DB_FACULTY_PASSWORD, role: "r_faculty" },
+    { user: env.DB_LIBRARIAN_USER, password: env.DB_LIBRARIAN_PASSWORD, role: "r_librarian" },
+  ];
 }
 
 /**

@@ -7,7 +7,10 @@ export function SiteHeader() {
     <header className="sticky top-0 z-[var(--z-sticky-nav)] border-b border-ink bg-paper">
       <div className="container-app flex h-[var(--bar-height)] items-center justify-between gap-4">
         <Wordmark />
-        <nav aria-label="Site" className="flex items-center gap-2">
+        <nav aria-label="Site" className="flex items-center gap-1 sm:gap-2">
+          <Link href="/catalog" className="nav-link">
+            Catalogue
+          </Link>
           <ModeToggle />
           <Link href="/login" className="btn">
             Sign in
