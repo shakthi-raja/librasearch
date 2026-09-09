@@ -8,8 +8,10 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   return (
     <ul className="flex min-w-0 items-center gap-1 overflow-x-auto">
-      {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+      {items.map((item, index) => {
+        // the first item is the role's home, which every other page sits under
+        const active =
+          pathname === item.href || (index > 0 && pathname.startsWith(`${item.href}/`));
         return (
           <li key={item.href}>
             <Link href={item.href} className="nav-link" aria-current={active ? "page" : undefined}>
