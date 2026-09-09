@@ -35,13 +35,13 @@ export async function signInAction(_previous: SignInState, form: FormData): Prom
 
   const result = await signIn(parsed.data, await requestMeta());
   if (!result.ok) {
-    return {
-      identifier,
-      error:
-        result.reason === "INACTIVE"
-          ? "This account is not active. Please contact the library desk."
-          : "University ID, email or password is incorrect.",
-    };
+    const minutes = result.reason === "THROTTLED" ? Math.ceil(result.retryAfterSeconds / 60) : 0;
+    const error = {
+      INVALID: "University ID, email or password is incorrect.",
+      INACTIVE: "This account is not active. Please contact the library desk.",
+      THROTTLED: `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    }[result.reason];
+    return { identifier, error };
   }
 
   (await cookies()).set(sessionCookie(result.token, result.expiresAt));

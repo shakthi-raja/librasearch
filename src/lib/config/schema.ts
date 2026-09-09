@@ -59,6 +59,12 @@ export const adminEnvSchema = z.object({
 export const accountsEnvSchema = adminEnvSchema.extend({
   DB_AUTH_USER: appEnvSchema.shape.DB_AUTH_USER,
   DB_AUTH_PASSWORD: secret,
+  DB_STUDENT_USER: appEnvSchema.shape.DB_STUDENT_USER,
+  DB_STUDENT_PASSWORD: secret,
+  DB_FACULTY_USER: appEnvSchema.shape.DB_FACULTY_USER,
+  DB_FACULTY_PASSWORD: secret,
+  DB_LIBRARIAN_USER: appEnvSchema.shape.DB_LIBRARIAN_USER,
+  DB_LIBRARIAN_PASSWORD: secret,
 });
 
 export type AppEnv = z.infer<typeof appEnvSchema>;

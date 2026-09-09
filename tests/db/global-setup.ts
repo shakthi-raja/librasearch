@@ -1,3 +1,4 @@
+import { Redis } from "ioredis";
 import { accountsEnvSchema, parseEnv } from "@/lib/config/schema";
 import { accounts, provisionAccounts } from "../../scripts/lib/accounts";
 import { adminConnection, MIGRATIONS_DIR } from "../../scripts/lib/admin-db";
@@ -26,5 +27,19 @@ export default async function setup() {
     await provisionAccounts(db, accounts(env));
   } finally {
     await db.end();
+  }
+
+  // login throttling counters from earlier runs would leak into this one
+  if (process.env.REDIS_URL) {
+    const client = new Redis(process.env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    try {
+      await client.connect();
+      const keys = await client.keys(`ls:${env.DB_NAME}:*`);
+      if (keys.length > 0) await client.del(...keys);
+    } catch {
+      // without redis the in-process limiter starts empty anyway
+    } finally {
+      client.disconnect();
+    }
   }
 }

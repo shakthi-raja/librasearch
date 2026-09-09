@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const PROTECTED = ["/student", "/faculty", "/admin"];
+const PROTECTED = ["/student", "/faculty", "/admin", "/account"];
 // Mirrors SESSION_COOKIE_NAME's default. The proxy only checks presence; the
 // session itself, its expiry and the role are verified on the server render.
 const COOKIE = process.env.SESSION_COOKIE_NAME ?? "ls_session";
