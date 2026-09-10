@@ -191,3 +191,143 @@ describe("sp_issue_copy", () => {
     await expectSqlError(issue(copy.barcode, student, impostor), ER.SIGNAL_EXCEPTION, /LS009/);
   });
 });
+
+const overdueLoan = async (copyId: number, memberId: number, daysLate: number) => {
+  const [result] = await db.query<ResultSetHeader>(
+    `INSERT INTO loans (copy_id, member_id, issued_by, issued_at, due_at)
+     VALUES (?, ?, ?, DATE_SUB(NOW(3), INTERVAL ${daysLate + 14} DAY), DATE_SUB(NOW(3), INTERVAL ${daysLate} DAY))`,
+    [copyId, memberId, librarian],
+  );
+  await db.query("UPDATE copies SET status = 'ON_LOAN' WHERE copy_id = ?", [copyId]);
+  return result.insertId;
+};
+
+const returnCopy = async (barcode: string, actorId = librarian) => {
+  await db.query("CALL sp_return_copy(?, ?, @returned_loan, @returned_fine)", [barcode, actorId]);
+  const [rows] = await db.query<RowDataPacket[]>(
+    "SELECT @returned_loan AS loan_id, @returned_fine AS fine_id",
+  );
+  return rows[0] as { loan_id: number | null; fine_id: number | null };
+};
+
+describe("sp_return_copy", () => {
+  it("closes an on-time loan, restores the shelf and charges nothing", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    const issued = await issue(copy.barcode, student);
+
+    const result = await returnCopy(copy.barcode);
+
+    expect(result.loan_id).toBe(issued);
+    expect(result.fine_id).toBeNull();
+    expect(await loanRow(issued)).toMatchObject({ returned_at: expect.any(Date) });
+    expect((await copyRow(copyId)).status).toBe("AVAILABLE");
+  });
+
+  it("charges the overdue days at the configured daily rate", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await overdueLoan(copyId, student, 10);
+
+    const result = await returnCopy(copy.barcode);
+
+    expect(result.fine_id).not.toBeNull();
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT amount, days_overdue, status FROM fines WHERE fine_id = ?",
+      [result.fine_id],
+    );
+    expect(Number(rows[0]?.amount)).toBe(50);
+    expect(rows[0]?.days_overdue).toBe(10);
+    expect(rows[0]?.status).toBe("UNPAID");
+  });
+
+  it("caps the fine at the policy cap", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await overdueLoan(copyId, student, 100);
+
+    const result = await returnCopy(copy.barcode);
+
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT amount, days_overdue FROM fines WHERE fine_id = ?",
+      [result.fine_id],
+    );
+    expect(Number(rows[0]?.amount)).toBe(200);
+    expect(rows[0]?.days_overdue).toBe(100);
+  });
+
+  it("updates a fine created by accrual instead of adding a second row", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    const loanId = await overdueLoan(copyId, student, 5);
+    await db.query("INSERT INTO fines (loan_id, amount, days_overdue) VALUES (?, 10.00, 2)", [
+      loanId,
+    ]);
+
+    const result = await returnCopy(copy.barcode);
+
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT fine_id, amount, days_overdue FROM fines WHERE loan_id = ?",
+      [loanId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.fine_id).toBe(result.fine_id);
+    expect(Number(rows[0]?.amount)).toBe(25);
+    expect(rows[0]?.days_overdue).toBe(5);
+  });
+
+  it("hands the returned copy to the first waiting hold", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const holder = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await directLoan(copyId, student);
+    const [hold] = await db.query<ResultSetHeader>(
+      "INSERT INTO holds (book_id, member_id) VALUES (?, ?)",
+      [bookId, holder],
+    );
+
+    await returnCopy(copy.barcode);
+
+    const [holds] = await db.query<RowDataPacket[]>(
+      "SELECT status, ready_copy_id, ready_at, pickup_by FROM holds WHERE hold_id = ?",
+      [hold.insertId],
+    );
+    expect(holds[0]?.status).toBe("READY");
+    expect(holds[0]?.ready_copy_id).toBe(copyId);
+    expect(holds[0]?.pickup_by).not.toBeNull();
+    expect(new Date(holds[0]?.pickup_by as Date).getTime()).toBeGreaterThan(
+      new Date(holds[0]?.ready_at as Date).getTime(),
+    );
+    expect((await copyRow(copyId)).status).toBe("ON_HOLD_SHELF");
+  });
+
+  it("refuses a copy that has no open loan", async () => {
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+
+    await expectSqlError(returnCopy(copy.barcode), ER.SIGNAL_EXCEPTION, /LS010/);
+    expect((await copyRow(copy.copy_id)).status).toBe("AVAILABLE");
+  });
+
+  it("refuses an actor who is not a librarian", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const impostor = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await directLoan(copyId, student);
+
+    await expectSqlError(returnCopy(copy.barcode, impostor), ER.SIGNAL_EXCEPTION, /LS009/);
+    expect((await copyRow(copyId)).status).toBe("ON_LOAN");
+  });
+});
