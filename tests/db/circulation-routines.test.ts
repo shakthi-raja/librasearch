@@ -331,3 +331,217 @@ describe("sp_return_copy", () => {
     expect((await copyRow(copyId)).status).toBe("ON_LOAN");
   });
 });
+
+const renew = async (loanId: number, actorId: number) => {
+  await db.query("CALL sp_renew_loan(?, ?, @renewed_due)", [loanId, actorId]);
+  const [rows] = await db.query<RowDataPacket[]>("SELECT @renewed_due AS due_at");
+  const raw = rows[0]?.due_at;
+  if (raw == null) throw new Error("renewal returned no due date");
+  return new Date(`${String(raw).replace(" ", "T")}Z`);
+};
+
+const placeHold = async (bookId: number, memberId: number) => {
+  await db.query("CALL sp_place_hold(?, ?, @new_hold)", [bookId, memberId]);
+  const [rows] = await db.query<RowDataPacket[]>("SELECT @new_hold AS hold_id");
+  return Number((rows[0] as { hold_id: number | null }).hold_id);
+};
+
+const cancelHold = async (holdId: number, actorId: number) => {
+  await db.query("CALL sp_cancel_hold(?, ?)", [holdId, actorId]);
+};
+
+const holdRow = async (holdId: number) => {
+  const [rows] = await db.query<RowDataPacket[]>(
+    "SELECT hold_id, status, ready_copy_id, closed_at FROM holds WHERE hold_id = ?",
+    [holdId],
+  );
+  return rows[0] as {
+    hold_id: number;
+    status: string;
+    ready_copy_id: number | null;
+    closed_at: Date | null;
+  };
+};
+
+describe("sp_renew_loan", () => {
+  it("extends the due date and counts the renewal", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+    const loanId = await issue(copy.barcode, student);
+    const before = await loanRow(loanId);
+
+    const due = await renew(loanId, student);
+
+    expect(new Date(due).getTime()).toBeGreaterThan(new Date(before.due_at).getTime());
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT due_at, renew_count FROM loans WHERE loan_id = ?",
+      [loanId],
+    );
+    expect(rows[0]?.renew_count).toBe(1);
+    expect(new Date(rows[0]?.due_at as Date).getTime()).toBe(new Date(due).getTime());
+  });
+
+  it("lets a librarian renew on the member's behalf", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+    const loanId = await issue(copy.barcode, student);
+
+    await expect(renew(loanId, librarian)).resolves.toBeInstanceOf(Date);
+  });
+
+  it("refuses a third renewal when the role allows two", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+    const loanId = await issue(copy.barcode, student);
+    await renew(loanId, student);
+    await renew(loanId, student);
+
+    await expectSqlError(renew(loanId, student), ER.SIGNAL_EXCEPTION, /LS011/);
+  });
+
+  it("refuses while another member is waiting for the book", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const waiting = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+    const loanId = await issue(copy.barcode, student);
+    await db.query("INSERT INTO holds (book_id, member_id) VALUES (?, ?)", [bookId, waiting]);
+
+    await expectSqlError(renew(loanId, student), ER.SIGNAL_EXCEPTION, /LS012/);
+  });
+
+  it("refuses an overdue loan", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const loanId = await overdueLoan(copyIds[0] as number, student, 3);
+
+    await expectSqlError(renew(loanId, student), ER.SIGNAL_EXCEPTION, /LS013/);
+  });
+
+  it("refuses a member renewing someone else's loan", async () => {
+    const student = await insertUser(db, "STUDENT");
+    const other = await insertUser(db, "STUDENT");
+    const { copyIds } = await insertStockedBook(db, 1);
+    const copy = await copyRow(copyIds[0] as number);
+    const loanId = await issue(copy.barcode, student);
+
+    await expectSqlError(renew(loanId, other), ER.SIGNAL_EXCEPTION, /LS014/);
+  });
+});
+
+describe("holds", () => {
+  it("places a hold only when no copy is on the shelf", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+
+    const holdId = await placeHold(bookId, member);
+    expect((await holdRow(holdId)).status).toBe("WAITING");
+  });
+
+  it("refuses a hold while a copy is available", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const { bookId } = await insertStockedBook(db, 1);
+
+    await expectSqlError(placeHold(bookId, member), ER.SIGNAL_EXCEPTION, /LS016/);
+  });
+
+  it("refuses a second active hold for the same member and book", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+    await placeHold(bookId, member);
+
+    await expectSqlError(placeHold(bookId, member), ER.SIGNAL_EXCEPTION, /LS015/);
+  });
+
+  it("refuses a hold for a librarian account", async () => {
+    const staff = await insertUser(db, "LIBRARIAN");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+
+    await expectSqlError(placeHold(bookId, staff), ER.SIGNAL_EXCEPTION, /LS001/);
+  });
+
+  it("cancels the member's own waiting hold", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+    const holdId = await placeHold(bookId, member);
+
+    await cancelHold(holdId, member);
+
+    const hold = await holdRow(holdId);
+    expect(hold.status).toBe("CANCELLED");
+    expect(hold.closed_at).not.toBeNull();
+  });
+
+  it("refuses a member cancelling someone else's hold", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const other = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+    const holdId = await placeHold(bookId, member);
+
+    await expectSqlError(cancelHold(holdId, other), ER.SIGNAL_EXCEPTION, /LS018/);
+  });
+
+  it("releases a ready copy when its hold is cancelled", async () => {
+    const first = await insertUser(db, "STUDENT");
+    const second = await insertUser(db, "STUDENT");
+    const borrower = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await directLoan(copyId, borrower);
+    const firstHold = await placeHold(bookId, first);
+    await placeHold(bookId, second);
+    await db.query(
+      "UPDATE holds SET placed_at = DATE_SUB(NOW(3), INTERVAL 1 MINUTE) WHERE hold_id = ?",
+      [firstHold],
+    );
+
+    await returnCopy(copy.barcode);
+    expect((await holdRow(firstHold)).status).toBe("READY");
+
+    await cancelHold(firstHold, first);
+
+    expect((await copyRow(copyId)).status).toBe("ON_HOLD_SHELF");
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT hold_id, status FROM holds WHERE book_id = ? AND status = 'READY'",
+      [bookId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.hold_id).not.toBe(firstHold);
+  });
+
+  it("puts the copy back on the shelf when the last ready hold is cancelled", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const borrower = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    const copyId = copyIds[0] as number;
+    const copy = await copyRow(copyId);
+    await directLoan(copyId, borrower);
+    const holdId = await placeHold(bookId, member);
+
+    await returnCopy(copy.barcode);
+    expect((await copyRow(copyId)).status).toBe("ON_HOLD_SHELF");
+
+    await cancelHold(holdId, member);
+
+    expect((await copyRow(copyId)).status).toBe("AVAILABLE");
+  });
+
+  it("refuses to cancel a hold that is already closed", async () => {
+    const member = await insertUser(db, "STUDENT");
+    const { bookId, copyIds } = await insertStockedBook(db, 1);
+    await directLoan(copyIds[0] as number, await insertUser(db, "STUDENT"));
+    const holdId = await placeHold(bookId, member);
+    await cancelHold(holdId, member);
+
+    await expectSqlError(cancelHold(holdId, member), ER.SIGNAL_EXCEPTION, /LS017/);
+  });
+});
