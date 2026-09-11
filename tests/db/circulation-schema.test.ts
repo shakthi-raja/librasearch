@@ -60,11 +60,9 @@ describe("loans", () => {
       ER.CHECK_CONSTRAINT_VIOLATED,
       /ck_loans_closed/,
     );
-    await expectSqlError(
-      openLoan(copyIds[2] as number, librarian),
-      ER.CHECK_CONSTRAINT_VIOLATED,
-      /ck_loans_not_self_issued/,
-    );
+    // A librarian has no borrowing allowance, so the loan guard refuses the
+    // row before the self-issued CHECK can. The CHECK remains a backstop.
+    await expectSqlError(openLoan(copyIds[2] as number, librarian), ER.SIGNAL_EXCEPTION, /LS001/);
   });
 });
 
