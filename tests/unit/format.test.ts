@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateTime, formatMoney, formatPeriod } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatOrdinal, formatPeriod } from "@/lib/format";
 
 describe("formatDate", () => {
   it("renders a UTC instant as an Indian date", () => {
@@ -30,5 +30,16 @@ describe("formatPeriod", () => {
     expect(formatPeriod("STANDARD")).toBe("Regular loan");
     expect(formatPeriod("HIGH_DEMAND")).toBe("High demand");
     expect(formatPeriod("SHORT_LOAN")).toBe("Short loan");
+  });
+});
+
+describe("formatOrdinal", () => {
+  it("handles the teen exceptions and the usual suffixes", () => {
+    expect(formatOrdinal(1)).toBe("1st");
+    expect(formatOrdinal(2)).toBe("2nd");
+    expect(formatOrdinal(3)).toBe("3rd");
+    expect(formatOrdinal(4)).toBe("4th");
+    expect(formatOrdinal(11)).toBe("11th");
+    expect(formatOrdinal(21)).toBe("21st");
   });
 });

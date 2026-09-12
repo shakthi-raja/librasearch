@@ -39,6 +39,17 @@ export function formatMoney(value: number | string) {
   return `Rs ${moneyFormat.format(Number(value))}`;
 }
 
+/** 1st, 2nd, 3rd, 4th; 11th and 21st take their own rules. */
+export function formatOrdinal(value: number) {
+  const mod100 = value % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
+  const mod10 = value % 10;
+  if (mod10 === 1) return `${value}st`;
+  if (mod10 === 2) return `${value}nd`;
+  if (mod10 === 3) return `${value}rd`;
+  return `${value}th`;
+}
+
 const PERIODS = {
   STANDARD: "Regular loan",
   HIGH_DEMAND: "High demand",

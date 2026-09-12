@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HoldCancelButton } from "@/components/holds/cancel-button";
 import { PageHeader } from "@/components/layout/app-shell";
 import { RenewButton } from "@/components/student/renew-button";
-import { formatDate, formatDateTime, formatMoney, formatPeriod } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatOrdinal, formatPeriod } from "@/lib/format";
 import { requireUser } from "@/server/auth/current";
+import { getMemberHolds } from "@/server/services/holds";
 import { getMemberDashboard } from "@/server/services/member";
 
 export const metadata: Metadata = { title: "Your loans" };
@@ -11,8 +13,11 @@ export const metadata: Metadata = { title: "Your loans" };
 const DAY = 86_400_000;
 
 export default async function StudentHomePage() {
-  const user = await requireUser("STUDENT");
-  const { overview, loans } = await getMemberDashboard(user.userId);
+  const user = await requireUser("STUDENT", "FACULTY");
+  const [{ overview, loans }, holds] = await Promise.all([
+    getMemberDashboard(user.userId, user.role),
+    getMemberHolds(user.userId, user.role),
+  ]);
   const now = Date.now();
   const daysUntil = (date: Date) => Math.ceil((date.getTime() - now) / DAY);
 
@@ -30,11 +35,21 @@ export default async function StudentHomePage() {
   const fineText =
     Number(overview.unpaidFines) > 0 ? ` ${formatMoney(overview.unpaidFines)} is unpaid.` : "";
 
+  const ready = holds.filter((hold) => hold.status === "READY").length;
+  const holdsText =
+    holds.length === 0
+      ? ""
+      : ready > 0
+        ? ` ${ready === 1 ? "One hold is ready to collect." : `${ready} holds are ready to collect.`}`
+        : holds.length === 1
+          ? " One hold in the queue."
+          : ` ${holds.length} holds in the queue.`;
+
   return (
     <>
       <PageHeader
         title="Your loans"
-        description={`${overview.activeLoans} of ${overview.maxLoans} loans. ${dueText}${fineText}`}
+        description={`${overview.activeLoans} of ${overview.maxLoans} loans. ${dueText}${fineText}${holdsText}`}
       />
 
       <section aria-label="Borrowed copies" className="max-w-[54rem]">
@@ -111,6 +126,57 @@ export default async function StudentHomePage() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      <section
+        id="holds"
+        aria-labelledby="holds-heading"
+        className="mt-[var(--space-2xl)] grid max-w-[54rem] gap-[var(--space-sm)]"
+      >
+        <h2 id="holds-heading" className="text-lg">
+          Your holds
+        </h2>
+        {holds.length === 0 ? (
+          <p className="max-w-[58ch] text-muted">
+            No holds. When every copy of a book is out, the book page offers a hold.
+          </p>
+        ) : (
+          <ul className="ruled">
+            {holds.map((hold) => (
+              <li key={hold.holdId} className="grid gap-[var(--space-sm)] py-[var(--space-lg)]">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-md)] gap-y-1">
+                  <h3 className="text-lg">{hold.title}</h3>
+                  <span className={hold.status === "READY" ? "chip chip-signal" : "chip"}>
+                    {hold.status === "READY"
+                      ? "Ready to collect"
+                      : `${formatOrdinal(hold.queuePosition)} in line`}
+                  </span>
+                </div>
+                <p className="text-sm text-muted">{hold.authors}</p>
+                {hold.status === "READY" ? (
+                  <p className="text-sm">
+                    Collect from <span className="figure">{hold.readyRack}</span> by{" "}
+                    <span className="figure">
+                      {hold.pickupBy ? formatDateTime(hold.pickupBy) : "the desk"}
+                    </span>
+                    {hold.readyBarcode ? (
+                      <>
+                        {" "}
+                        / <span className="figure">{hold.readyBarcode}</span>
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">
+                    Placed <span className="figure">{formatDate(hold.placedAt)}</span>. The next
+                    free copy is reserved for you when it returns.
+                  </p>
+                )}
+                <HoldCancelButton holdId={hold.holdId} />
+              </li>
+            ))}
           </ul>
         )}
       </section>
