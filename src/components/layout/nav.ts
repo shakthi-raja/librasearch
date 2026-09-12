@@ -15,6 +15,7 @@ export const NAV: Record<RoleName, NavItem[]> = {
   ],
   LIBRARIAN: [
     { href: "/admin", label: "Overview" },
+    { href: "/admin/circulation", label: "Circulation" },
     { href: "/admin/catalog", label: "Catalogue" },
     { href: "/account", label: "Account" },
   ],
