@@ -70,3 +70,31 @@ export type DeskActivity = {
   issuedAt: string;
   returnedAt: string | null;
 };
+
+export type MemberOverview = {
+  userId: number;
+  universityId: string;
+  fullName: string;
+  role: "STUDENT" | "FACULTY" | "LIBRARIAN";
+  maxLoans: number;
+  maxRenewals: number;
+  loanDays: number;
+  activeLoans: number;
+  unpaidFines: string;
+};
+
+export type MemberLoan = {
+  loanId: number;
+  title: string;
+  authors: string;
+  editionNo: number;
+  barcode: string;
+  rack: string;
+  shelf: string;
+  issuedAt: Date;
+  dueAt: Date;
+  renewCount: number;
+  daysOverdue: number;
+  fineDue: string;
+  periodRule: PeriodRule;
+};

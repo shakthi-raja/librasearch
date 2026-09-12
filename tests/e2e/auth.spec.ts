@@ -39,6 +39,6 @@ test.describe("role boundaries", () => {
 
   test("a student reaches their own desk", async ({ page }) => {
     await page.goto(ROLES.student.home);
-    await expect(page.getByRole("heading", { name: "Your desk" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your loans" })).toBeVisible();
   });
 });
