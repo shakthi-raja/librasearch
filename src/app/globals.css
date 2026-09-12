@@ -210,6 +210,11 @@
     color: var(--color-ink);
   }
 
+  .chip-error {
+    background: var(--color-error-soft);
+    color: var(--color-ink);
+  }
+
   .figure {
     font-family: var(--font-figure);
     font-variant-numeric: tabular-nums;
@@ -365,6 +370,7 @@
       --color-error: #8a1f1f;
     }
 
+    /* biome-ignore lint/style/noDescendingSpecificity: the print reset hides every element before revealing the slip */
     body * {
       visibility: hidden;
     }

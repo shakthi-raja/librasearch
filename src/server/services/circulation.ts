@@ -112,6 +112,29 @@ export async function returnCopy(input: {
   return receipt(loanId, "RETURN");
 }
 
+type RenewalRole = "STUDENT" | "FACULTY" | "LIBRARIAN";
+
+export async function renewLoan(input: {
+  loanId: number;
+  actorId: number;
+  role: RenewalRole;
+}): Promise<Date> {
+  const account =
+    input.role === "STUDENT" ? "student" : input.role === "FACULTY" ? "faculty" : "librarian";
+  const connection = await pool(account).getConnection();
+  try {
+    await connection.query("CALL sp_renew_loan(?, ?, @renewed_due)", [input.loanId, input.actorId]);
+    const [rows] = await connection.query<RowDataPacket[]>("SELECT @renewed_due AS due_at");
+    const raw = rows[0]?.due_at;
+    if (raw == null) throw new AppError("INTERNAL", "The renewal did not return a due date.");
+    return new Date(`${String(raw).replace(" ", "T")}Z`);
+  } catch (error) {
+    throw mapDbError(error);
+  } finally {
+    connection.release();
+  }
+}
+
 export function getDeskPolicy(): Promise<DeskPolicy> {
   return deskPolicy(db());
 }
