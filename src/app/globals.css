@@ -314,4 +314,82 @@
     color: var(--color-ink);
     background: var(--color-paper-3);
   }
+
+  /* a two-state desk control: the chosen action is a raised key */
+  .segmented {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-3);
+  }
+
+  .segmented > .btn {
+    min-height: 36px;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .segmented > .btn:hover {
+    border-color: transparent;
+    background: var(--color-paper-2);
+  }
+
+  .segmented > .btn[aria-pressed="true"] {
+    border-color: var(--color-rule-strong);
+    background: var(--color-paper);
+    box-shadow: inset 0 1px 0 var(--color-sheet);
+  }
+
+  /* the slip prints as a sheet of paper, whatever the reader's theme */
+  @media print {
+    @page {
+      margin: 14mm;
+    }
+
+    :root,
+    [data-mode="dark"] {
+      --color-paper: #ffffff;
+      --color-paper-2: #ffffff;
+      --color-paper-3: #f4f1e9;
+      --color-sheet: #ffffff;
+      --color-ink: #111111;
+      --color-ink-2: #222222;
+      --color-muted: #444444;
+      --color-rule: #cccccc;
+      --color-rule-strong: #999999;
+      --color-grid: #e8e3d8;
+      --color-error: #8a1f1f;
+    }
+
+    body * {
+      visibility: hidden;
+    }
+
+    .print-area,
+    .print-area * {
+      visibility: visible;
+    }
+
+    .print-area {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .print-area .entry-head {
+      border-bottom: 1px solid #111111;
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .print-area .no-print {
+      display: none !important;
+    }
+  }
 }
