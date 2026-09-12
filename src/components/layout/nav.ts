@@ -11,11 +11,13 @@ export const NAV: Record<RoleName, NavItem[]> = {
   ],
   FACULTY: [
     { href: "/faculty", label: "Overview" },
+    { href: "/student", label: "Borrowing" },
     { href: "/account", label: "Account" },
   ],
   LIBRARIAN: [
     { href: "/admin", label: "Overview" },
     { href: "/admin/circulation", label: "Circulation" },
+    { href: "/admin/holds", label: "Holds" },
     { href: "/admin/catalog", label: "Catalogue" },
     { href: "/account", label: "Account" },
   ],

@@ -98,3 +98,24 @@ export type MemberLoan = {
   fineDue: string;
   periodRule: PeriodRule;
 };
+
+export type HoldStatus = "WAITING" | "READY";
+
+export type MemberHold = {
+  holdId: number;
+  bookId: number;
+  title: string;
+  authors: string;
+  status: HoldStatus;
+  queuePosition: number;
+  placedAt: Date;
+  readyAt: Date | null;
+  pickupBy: Date | null;
+  readyBarcode: string | null;
+  readyRack: string | null;
+};
+
+export type StaffHold = MemberHold & {
+  memberName: string;
+  universityId: string;
+};

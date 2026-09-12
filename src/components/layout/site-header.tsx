@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/wordmark";
+import { currentUser } from "@/server/auth/current";
 import { ModeToggle } from "./mode-toggle";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await currentUser();
   return (
     <header className="sticky top-0 z-[var(--z-sticky-nav)] border-b border-ink bg-paper">
       <div className="container-app flex h-[var(--bar-height)] items-center justify-between gap-4">
@@ -12,9 +14,15 @@ export function SiteHeader() {
             Catalogue
           </Link>
           <ModeToggle />
-          <Link href="/login" className="btn">
-            Sign in
-          </Link>
+          {user ? (
+            <Link href="/account" className="btn">
+              Account
+            </Link>
+          ) : (
+            <Link href="/login" className="btn">
+              Sign in
+            </Link>
+          )}
         </nav>
       </div>
     </header>
