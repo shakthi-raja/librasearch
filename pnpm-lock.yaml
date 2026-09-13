@@ -112,6 +112,9 @@ importers:
       '@node-rs/argon2':
         specifier: 2.2.0
         version: 2.2.0
+      '@qdrant/js-client-rest':
+        specifier: 1.19.0
+        version: 1.19.0(typescript@7.0.2)
       ioredis:
         specifier: 6.0.0
         version: 6.0.0
@@ -738,6 +741,16 @@ packages:
     resolution: {integrity: sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==}
     engines: {node: '>=20'}
     hasBin: true
+
+  '@qdrant/js-client-rest@1.19.0':
+    resolution: {integrity: sha512-1+QLUHsWp+WV4PE35FLnH2ckxotWrQEqi/F3t4goF3cCThR0ZxLVtOC4OoOi/E1iyj/iIYBdbuACWMuQ15NAnA==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      typescript: '>=4.7'
+
+  '@qdrant/openapi-typescript-fetch@1.2.6':
+    resolution: {integrity: sha512-oQG/FejNpItrxRHoyctYvT3rwGZOnK4jr3JdppO/c78ktDvkWiPXPHNsrDf33K9sZdRb6PR7gi4noIapu5q4HA==}
+    engines: {node: '>=18.0.0', pnpm: '>=8'}
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     resolution: {integrity: sha512-b+jTcARdTiFLI6jB4a5XjTm0RWd6KcRfQj/I2356fxUZemiho9zQLxo0RtCuMDAyKcLo6cEltkgbQp6d1+sjjQ==}
@@ -1700,6 +1713,10 @@ packages:
   undici-types@7.18.2:
     resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
 
+  undici@7.29.0:
+    resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
+    engines: {node: '>=20.18.1'}
+
   vite@8.2.2:
     resolution: {integrity: sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -2135,6 +2152,14 @@ snapshots:
   '@playwright/test@1.62.1':
     dependencies:
       playwright: 1.62.1
+
+  '@qdrant/js-client-rest@1.19.0(typescript@7.0.2)':
+    dependencies:
+      '@qdrant/openapi-typescript-fetch': 1.2.6
+      typescript: 7.0.2
+      undici: 7.29.0
+
+  '@qdrant/openapi-typescript-fetch@1.2.6': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     optional: true
@@ -2935,6 +2960,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@7.18.2: {}
+
+  undici@7.29.0: {}
 
   vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13):
     dependencies:
