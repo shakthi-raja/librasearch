@@ -84,6 +84,12 @@ jobs:
         run: pnpm db:migrate | grep -q "schema is up to date"
       - run: pnpm db:seed
       - run: pnpm test:db
+      - name: Evidence scripts run against the seeded schema
+        run: |
+          for demo in db/demo/*.sql; do
+            echo "== $demo"
+            docker exec -i mysql mysql -uroot -p"$DB_ADMIN_PASSWORD" "$DB_NAME" --force < "$demo"
+          done
 
   audit:
     name: dependency audit

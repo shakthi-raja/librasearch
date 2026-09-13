@@ -2,6 +2,14 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-09-13 - The desk
+
+- Circulation desk: issue, return, renew and hold pickup with printed slips
+- Hold queue placement, cancellation and expiry
+- Fines, waiver reasons and the member dashboard
+- Loan policies, holidays and busy-period rules in stored procedures
+- Role-specific API routes and audit triggers
+
 ## 2026-09-09 - Catalogue and access
 
 - Public catalogue with the subject tree, facet filters, sorting and honest paging
