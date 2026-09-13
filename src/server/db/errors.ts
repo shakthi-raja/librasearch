@@ -38,6 +38,9 @@ const UNIQUE: Record<string, string> = {
   uq_copies_barcode: "Another copy already has this barcode.",
   uq_copies_accession: "Another copy already has this accession number.",
   uq_categories_slug: "A subject with that name already exists.",
+  uq_academic_terms_name: "A term with that name already exists.",
+  uq_courses_code: "Another course already uses that code.",
+  uq_course_offerings_section: "This course already has an offering in that term and section.",
 };
 
 const CHECKS: Record<string, string> = {
