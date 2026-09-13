@@ -13,6 +13,12 @@ describe("mapDbError", () => {
     expect(e.message).toMatch(/earlier edition/);
   });
 
+  it("turns circulation signals into desk language", () => {
+    const e = mapDbError(mysql(1644, "LS005: this member has reached the loan limit"));
+    expect(e).toMatchObject({ code: "CONFLICT", status: 409 });
+    expect(e.message).toBe("This member has reached the loan limit.");
+  });
+
   it("names the duplicate key in words", () => {
     expect(
       mapDbError(mysql(1062, "Duplicate entry '978' for key 'editions.uq_editions_isbn'")).message,

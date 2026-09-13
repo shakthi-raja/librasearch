@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Availability } from "@/components/catalog/availability";
+import { PlaceHoldForm } from "@/components/holds/place-hold";
 import { type MapPin, StackMap } from "@/components/stack-map/stack-map";
+import { formatDateTime, formatOrdinal } from "@/lib/format";
+import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import { type BookDetail, type CopyState, findBook } from "@/server/repositories/book";
+import { getMemberHoldForBook } from "@/server/services/holds";
 
 const STATE: Record<CopyState, string> = {
   AVAILABLE: "On the shelf",
@@ -64,6 +68,10 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
   const reference = copies.filter(
     (c) => c.status === "AVAILABLE" && c.loanPolicy === "REFERENCE_ONLY",
   ).length;
+  const user = await currentUser();
+  const canBorrow = user?.role === "STUDENT" || user?.role === "FACULTY";
+  const hold =
+    user && canBorrow ? await getMemberHoldForBook(book.bookId, user.userId, user.role) : null;
 
   return (
     <article className="grid gap-[var(--space-2xl)]">
@@ -94,6 +102,89 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
           </div>
         </figure>
       </header>
+
+      <section
+        aria-labelledby="borrowing-heading"
+        className="grid gap-[var(--space-sm)] border-y border-rule py-[var(--space-lg)]"
+      >
+        <h2 id="borrowing-heading" className="text-lg">
+          Borrowing
+        </h2>
+
+        {user?.role === "LIBRARIAN" ? (
+          <p className="text-sm text-muted">
+            Staff accounts do not borrow. Run the loan from the circulation desk.
+          </p>
+        ) : null}
+
+        {!user ? (
+          <p className="text-sm text-ink-2">
+            {borrowable === 0 ? (
+              <>
+                Every copy is out.{" "}
+                <Link
+                  href={{ pathname: "/login", query: { next: `/catalog/${book.bookId}` } }}
+                  className="underline underline-offset-2"
+                >
+                  Sign in to place a hold
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                A copy is on the shelf.{" "}
+                <Link href="/login" className="underline underline-offset-2">
+                  Sign in
+                </Link>{" "}
+                to borrow it at the issue desk.
+              </>
+            )}
+          </p>
+        ) : null}
+
+        {canBorrow && hold ? (
+          <div className="grid gap-1 text-sm">
+            <p>
+              {hold.status === "READY" ? (
+                <>
+                  Ready to collect from <span className="figure">{hold.readyRack}</span>
+                  {hold.pickupBy ? (
+                    <>
+                      {" "}
+                      by <span className="figure">{formatDateTime(hold.pickupBy)}</span>
+                    </>
+                  ) : null}
+                  .
+                </>
+              ) : (
+                <>
+                  You are {formatOrdinal(hold.queuePosition)} in line. The next free copy is
+                  reserved for you.
+                </>
+              )}
+            </p>
+            <Link href="/student" className="underline underline-offset-2">
+              See your holds
+            </Link>
+          </div>
+        ) : null}
+
+        {canBorrow && !hold ? (
+          borrowable === 0 ? (
+            <div className="grid gap-[var(--space-sm)]">
+              <p className="max-w-[65ch] text-sm text-ink-2">
+                Every copy is out. A hold puts you in the queue and the desk sets it ready when a
+                copy returns.
+              </p>
+              <PlaceHoldForm bookId={book.bookId} />
+            </div>
+          ) : (
+            <p className="text-sm text-ink-2">
+              There is a copy on the shelf; the issue desk writes the loan.
+            </p>
+          )
+        ) : null}
+      </section>
 
       {book.editions.map((edition) => (
         <section

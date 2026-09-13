@@ -7,6 +7,24 @@ const isMysqlError = (error: unknown): error is MysqlError =>
 
 /** Messages for the LSnnn codes the schema raises with SIGNAL. */
 const SIGNALS: Record<string, string> = {
+  LS001: "This member cannot borrow right now.",
+  LS002: "No copy has that barcode.",
+  LS003: "That copy is not on the shelf. Check its status.",
+  LS004: "Reference copies stay in the library.",
+  LS005: "This member has reached the loan limit.",
+  LS006: "This member has unpaid fines above the limit.",
+  LS007: "That copy is reserved for another member.",
+  LS008: "This book is withdrawn from the shelf.",
+  LS009: "Only a librarian can use the desk.",
+  LS010: "No open loan matches that barcode.",
+  LS011: "This loan has reached its renewal limit.",
+  LS012: "Another member is waiting for this book.",
+  LS013: "Overdue loans cannot be renewed.",
+  LS014: "Only the borrower or a librarian can renew this loan.",
+  LS015: "This member already has a hold on that book.",
+  LS016: "A copy is on the shelf, so no hold is needed.",
+  LS017: "That hold is already closed.",
+  LS018: "Only the holder or a librarian can cancel that hold.",
   LS101: "The coordinator must be active faculty of the course's department.",
   LS102: "Only active students can be enrolled.",
   LS201: "A subject cannot be moved under one of its own subjects.",
@@ -20,6 +38,9 @@ const UNIQUE: Record<string, string> = {
   uq_copies_barcode: "Another copy already has this barcode.",
   uq_copies_accession: "Another copy already has this accession number.",
   uq_categories_slug: "A subject with that name already exists.",
+  uq_academic_terms_name: "A term with that name already exists.",
+  uq_courses_code: "Another course already uses that code.",
+  uq_course_offerings_section: "This course already has an offering in that term and section.",
 };
 
 const CHECKS: Record<string, string> = {
