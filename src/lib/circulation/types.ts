@@ -119,3 +119,23 @@ export type StaffHold = MemberHold & {
   memberName: string;
   universityId: string;
 };
+
+export type FineRecord = {
+  fineId: number;
+  loanId: number;
+  amount: string;
+  daysOverdue: number;
+  reason: string;
+  status: "UNPAID" | "PAID" | "WAIVED";
+  createdAt: Date;
+  settledAt: Date | null;
+  waiverReason: string | null;
+  memberId: number;
+  memberName: string;
+  universityId: string;
+  bookId: number;
+  title: string;
+  barcode: string;
+  editionNo: number;
+  settledByName: string | null;
+};
