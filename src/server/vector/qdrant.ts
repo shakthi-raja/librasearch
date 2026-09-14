@@ -110,6 +110,36 @@ export async function upsertPoint(
   });
 }
 
+export async function setPointPayload(
+  collection: CollectionName,
+  id: number,
+  payload: Record<string, unknown>,
+) {
+  await qdrant().setPayload(collectionName(collection), {
+    payload,
+    points: [id],
+    wait: true,
+  });
+}
+
+export async function deletePoint(collection: CollectionName, id: number) {
+  await qdrant().delete(collectionName(collection), { points: [id], wait: true });
+}
+
+export async function deleteByBookId(collection: CollectionName, bookId: number) {
+  await qdrant().delete(collectionName(collection), {
+    filter: { must: [{ key: "book_id", match: { value: bookId } }] },
+    wait: true,
+  });
+}
+
+export async function deleteByEditionId(collection: CollectionName, editionId: number) {
+  await qdrant().delete(collectionName(collection), {
+    filter: { must: [{ key: "edition_id", match: { value: editionId } }] },
+    wait: true,
+  });
+}
+
 export async function collectionInfo(base: CollectionName, prefix = "") {
   return qdrant().getCollection(collectionName(base, prefix));
 }

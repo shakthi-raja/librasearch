@@ -26,7 +26,8 @@
     "db:reset": "tsx scripts/db-reset.ts",
     "db:seed": "tsx scripts/seed.ts",
     "test:e2e": "playwright test",
-    "worker:dev": "tsx worker/index.ts"
+    "worker:dev": "tsx worker/index.ts",
+    "worker:rebuild": "tsx worker/rebuild.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.2.0",
