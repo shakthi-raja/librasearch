@@ -1,7 +1,13 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { embedDocument } from "@/server/vector/embedding";
-import { upsertPoint } from "@/server/vector/qdrant";
-import { documentFor } from "./documents";
+import {
+  deleteByBookId,
+  deleteByEditionId,
+  deletePoint,
+  setPointPayload,
+  upsertPoint,
+} from "@/server/vector/qdrant";
+import { chapterDocument, documentFor, editionChapterIds } from "./documents";
 import { log } from "./log";
 
 export type Job = {
@@ -91,10 +97,42 @@ export function backoffSeconds(attempts: number) {
   return Math.min(5 ** attempts, 300);
 }
 
+async function deleteFor(job: Job) {
+  if (job.entityType === "BOOK") {
+    await deleteByBookId("chapters", job.entityId);
+    await deletePoint("books", job.entityId);
+  } else if (job.entityType === "EDITION") {
+    await deleteByEditionId("chapters", job.entityId);
+  } else if (job.entityType === "CHAPTER") {
+    await deletePoint("chapters", job.entityId);
+  } else if (job.entityType === "UNIT") {
+    await deletePoint("syllabus_units", job.entityId);
+  }
+}
+
+async function payloadFor(db: Pool, job: Job) {
+  if (job.entityType === "EDITION") {
+    for (const chapterId of await editionChapterIds(db, job.entityId)) {
+      const document = await chapterDocument(db, chapterId);
+      if (document) await setPointPayload(document.collection, document.id, document.payload);
+    }
+    return;
+  }
+
+  const document = await documentFor(db, job.entityType, job.entityId);
+  if (document) await setPointPayload(document.collection, document.id, document.payload);
+}
+
 /** One job at a time. The caller owns marks; a throw means retry. */
 export async function processJob(db: Pool, job: Job) {
-  if (job.operation !== "UPSERT") {
-    throw new Error(`${job.operation} is handled by the payload and delete worker`);
+  if (job.operation === "DELETE") {
+    await deleteFor(job);
+    return;
+  }
+
+  if (job.operation === "PAYLOAD") {
+    await payloadFor(db, job);
+    return;
   }
 
   const document = await documentFor(db, job.entityType, job.entityId);

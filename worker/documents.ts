@@ -104,6 +104,14 @@ export async function unitDocument(db: Pool, unitId: number): Promise<Document |
   };
 }
 
+export async function editionChapterIds(db: Pool, editionId: number) {
+  const [rows] = await db.query<RowDataPacket[]>(
+    "SELECT chapter_id FROM chapters WHERE edition_id = ? ORDER BY chapter_id",
+    [editionId],
+  );
+  return rows.map((row) => Number(row.chapter_id));
+}
+
 /** The document for a catalogue entity; null when the row has gone. */
 export async function documentFor(db: Pool, entityType: string, entityId: number) {
   if (entityType === "CHAPTER") return chapterDocument(db, entityId);
