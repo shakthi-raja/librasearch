@@ -97,6 +97,19 @@ export async function dropCollections(prefix = "") {
   }
 }
 
+/** Upserts one point; the payload is the filterable part of the vector. */
+export async function upsertPoint(
+  collection: CollectionName,
+  id: number,
+  vector: number[],
+  payload: Record<string, unknown>,
+) {
+  await qdrant().upsert(collectionName(collection), {
+    wait: true,
+    points: [{ id, vector, payload }],
+  });
+}
+
 export async function collectionInfo(base: CollectionName, prefix = "") {
   return qdrant().getCollection(collectionName(base, prefix));
 }
