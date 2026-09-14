@@ -25,7 +25,8 @@
     "db:status": "tsx scripts/migrate.ts status",
     "db:reset": "tsx scripts/db-reset.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "worker:dev": "tsx worker/index.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.2.0",
