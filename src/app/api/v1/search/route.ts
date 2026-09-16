@@ -1,13 +1,29 @@
 import { NextResponse } from "next/server";
-import { searchQuerySchema } from "@/lib/validation/search";
-import { sessionCookieName } from "@/server/auth/cookie";
 import { route } from "@/server/http/handler";
-import { sessionFromToken } from "@/server/services/auth";
-import { keywordSearch } from "@/server/services/search";
+import { runSearch, type SearchMode } from "@/server/search/run";
 
 export const GET = route(async (request) => {
-  const { q } = searchQuerySchema.parse({ q: request.nextUrl.searchParams.get("q") ?? "" });
-  const user = await sessionFromToken(request.cookies.get(sessionCookieName())?.value);
-  const result = await keywordSearch(q, user?.userId ?? null);
-  return NextResponse.json({ mode: "keyword", query: q, ...result });
+  const params = request.nextUrl.searchParams;
+  const query = (params.get("q") ?? "").trim();
+  const mode: SearchMode =
+    params.get("mode") === "semantic" || params.get("mode") === "keyword"
+      ? (params.get("mode") as SearchMode)
+      : "hybrid";
+  const number = (value: string | null) => {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+  };
+
+  const yearFrom = number(params.get("yearFrom"));
+  const yearTo = number(params.get("yearTo"));
+  const category = params.get("category");
+  const language = params.get("language");
+  const result = await runSearch(query, mode, {
+    ...(category ? { categorySlug: category } : {}),
+    ...(language ? { language } : {}),
+    ...(yearFrom !== undefined ? { yearFrom } : {}),
+    ...(yearTo !== undefined ? { yearTo } : {}),
+  });
+
+  return NextResponse.json(result);
 });
