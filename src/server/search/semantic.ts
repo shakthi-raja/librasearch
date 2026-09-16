@@ -91,6 +91,11 @@ async function hitsFor(db: Pool, chapterIds: number[]) {
   return rows;
 }
 
+/** Similarity is the stronger signal, but a copy on the shelf breaks ties. */
+export function relevanceScore(similarity: number, available: number) {
+  return 0.8 * similarity + 0.2 * (available > 0 ? 1 : 0);
+}
+
 /**
  * Semantic chapter search. Qdrant proposes twenty neighbours above the floor;
  * MySQL supplies availability and the shelf, and the final order weights
@@ -140,7 +145,7 @@ export async function semanticSearch(
         rack: row.rack ?? null,
         shelf: row.shelf ?? null,
         similarity,
-        score: 0.8 * similarity + 0.2 * (available > 0 ? 1 : 0),
+        score: relevanceScore(similarity, available),
       } satisfies SearchHit;
     })
     .sort((a, b) => b.score - a.score)
