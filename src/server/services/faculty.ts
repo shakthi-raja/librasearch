@@ -78,6 +78,27 @@ export async function facultyUnit(unitId: number, userId: number) {
   return toUnit(row);
 }
 
+export type UnitMapping = {
+  chapterId: number;
+  chapterNo: number;
+  chapterTitle: string;
+  bookId: number;
+  bookTitle: string;
+  authors: string;
+  similarity: number;
+  source: "AUTO" | "MANUAL";
+  status: "SUGGESTED" | "APPROVED" | "REJECTED";
+};
+
+export type CoverageRow = {
+  courseCode: string;
+  courseTitle: string;
+  termName: string;
+  section: string;
+  units: number;
+  covered: number;
+};
+
 /** Searches the chapter collection with the unit text and stores suggestions. */
 export async function suggestChapters(unitId: number, userId: number) {
   const unit = await facultyUnit(unitId, userId);
@@ -103,4 +124,83 @@ export async function suggestChapters(unitId: number, userId: number) {
   }
 
   return result.points.length;
+}
+
+export async function unitMappings(unitId: number, userId: number): Promise<UnitMapping[]> {
+  await facultyUnit(unitId, userId);
+  const [rows] = await pool("faculty").query<RowDataPacket[]>(
+    `SELECT m.chapter_id, m.similarity, m.source, m.status,
+            c.chapter_no, c.title AS chapter_title, b.book_id, b.title AS book_title,
+            (SELECT GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ')
+               FROM book_authors ba JOIN authors a ON a.author_id = ba.author_id
+              WHERE ba.book_id = b.book_id) AS authors
+       FROM unit_chapter_map m
+       JOIN chapters c ON c.chapter_id = m.chapter_id
+       JOIN editions e ON e.edition_id = c.edition_id
+       JOIN books b ON b.book_id = e.book_id
+      WHERE m.unit_id = ?
+      ORDER BY m.similarity DESC, c.chapter_no`,
+    [unitId],
+  );
+  return rows.map(
+    (row) =>
+      ({
+        chapterId: Number(row.chapter_id),
+        chapterNo: Number(row.chapter_no),
+        chapterTitle: row.chapter_title,
+        bookId: Number(row.book_id),
+        bookTitle: row.book_title,
+        authors: row.authors ?? "",
+        similarity: Number(row.similarity),
+        source: row.source,
+        status: row.status,
+      }) satisfies UnitMapping,
+  );
+}
+
+export async function reviewMapping(
+  unitId: number,
+  chapterId: number,
+  status: "APPROVED" | "REJECTED",
+  userId: number,
+) {
+  const [result] = await pool("faculty").query(
+    `UPDATE unit_chapter_map m
+       JOIN syllabus_units u ON u.unit_id = m.unit_id
+       JOIN course_offerings o ON o.offering_id = u.offering_id
+        SET m.status = ?, m.reviewed_by = ?, m.reviewed_at = NOW(3)
+      WHERE m.unit_id = ? AND m.chapter_id = ? AND o.coordinator_id = ?`,
+    [status, userId, unitId, chapterId, userId],
+  );
+  if ((result as { affectedRows: number }).affectedRows === 0) {
+    throw new AppError("NOT_FOUND", "That mapping could not be reviewed.");
+  }
+}
+
+export async function facultyCoverage(userId: number): Promise<CoverageRow[]> {
+  const [rows] = await pool("faculty").query<RowDataPacket[]>(
+    `SELECT c.course_code, c.title AS course_title, t.name AS term_name, o.section,
+            COUNT(DISTINCT u.unit_id) AS units,
+            COUNT(DISTINCT CASE WHEN m.status = 'APPROVED' THEN u.unit_id END) AS covered
+       FROM syllabus_units u
+       JOIN course_offerings o ON o.offering_id = u.offering_id
+       JOIN courses c ON c.course_id = o.course_id
+       JOIN academic_terms t ON t.term_id = o.term_id
+       LEFT JOIN unit_chapter_map m ON m.unit_id = u.unit_id
+      WHERE o.coordinator_id = ?
+      GROUP BY c.course_id, c.course_code, c.title, t.name, o.section, t.start_date
+      ORDER BY t.start_date DESC, c.course_code`,
+    [userId],
+  );
+  return rows.map(
+    (row) =>
+      ({
+        courseCode: row.course_code,
+        courseTitle: row.course_title,
+        termName: row.term_name,
+        section: row.section,
+        units: Number(row.units),
+        covered: Number(row.covered),
+      }) satisfies CoverageRow,
+  );
 }
