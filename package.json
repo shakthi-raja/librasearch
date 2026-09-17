@@ -27,7 +27,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "test:e2e": "playwright test",
     "worker:dev": "tsx worker/index.ts",
-    "worker:rebuild": "tsx worker/rebuild.ts"
+    "worker:rebuild": "tsx worker/rebuild.ts",
+    "eval:search": "tsx scripts/eval-search.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "4.2.0",
