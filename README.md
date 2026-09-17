@@ -76,3 +76,8 @@ Every setting is read from `.env` and validated at boot; a missing or placeholde
 ## Course
 
 Course, team and SRN details are in [docs/COURSE.md](docs/COURSE.md).
+
+## Operating the vector index
+
+The worker, rebuild, drift checks and evaluation are described in
+[docs/RUNBOOK.md](docs/RUNBOOK.md).

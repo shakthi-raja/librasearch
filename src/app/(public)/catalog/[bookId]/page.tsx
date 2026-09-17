@@ -8,6 +8,7 @@ import { formatDateTime, formatOrdinal } from "@/lib/format";
 import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import { type BookDetail, type CopyState, findBook } from "@/server/repositories/book";
+import { alternativeChapters, similarBooks } from "@/server/search/similar";
 import { getMemberHoldForBook } from "@/server/services/holds";
 
 const STATE: Record<CopyState, string> = {
@@ -72,6 +73,10 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
   const canBorrow = user?.role === "STUDENT" || user?.role === "FACULTY";
   const hold =
     user && canBorrow ? await getMemberHoldForBook(book.bookId, user.userId, user.role) : null;
+  const similar = await similarBooks(book.bookId);
+  const firstChapter = book.editions.flatMap((edition) => edition.chapters)[0];
+  const alternatives =
+    borrowable === 0 && firstChapter ? await alternativeChapters(firstChapter.chapterId) : [];
 
   return (
     <article className="grid gap-[var(--space-2xl)]">
@@ -184,6 +189,33 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
             </p>
           )
         ) : null}
+
+        {alternatives.length > 0 ? (
+          <div className="grid gap-[var(--space-xs)] border-t border-rule pt-[var(--space-sm)]">
+            <h3 className="text-md">Chapters that cover the same ground</h3>
+            <ul className="ruled">
+              {alternatives.map((alternative) => (
+                <li
+                  key={alternative.chapterId}
+                  className="flex flex-wrap items-baseline justify-between gap-[var(--space-sm)] py-[var(--space-xs)] text-sm"
+                >
+                  <span>
+                    <Link
+                      href={`/catalog/${alternative.bookId}`}
+                      className="underline-offset-4 hover:underline"
+                    >
+                      {alternative.bookTitle}
+                    </Link>
+                    , chapter {alternative.chapterNo}: {alternative.chapterTitle}
+                  </span>
+                  <span className="figure text-muted">
+                    {alternative.rack} {alternative.shelf}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {book.editions.map((edition) => (
@@ -254,6 +286,37 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
           </div>
         </section>
       ))}
+
+      {similar.length > 0 ? (
+        <section aria-labelledby="similar-heading" className="grid gap-[var(--space-sm)]">
+          <h2 id="similar-heading" className="text-lg">
+            Similar books
+          </h2>
+          <ul className="ruled">
+            {similar.map((neighbour) => (
+              <li
+                key={neighbour.bookId}
+                className="flex flex-wrap items-baseline justify-between gap-[var(--space-sm)] py-[var(--space-sm)]"
+              >
+                <span>
+                  <Link
+                    href={`/catalog/${neighbour.bookId}`}
+                    className="text-lg underline-offset-4 hover:underline"
+                  >
+                    {neighbour.title}
+                  </Link>
+                  <span className="block text-sm text-muted">{neighbour.authors}</span>
+                </span>
+                <span className="text-sm text-muted">
+                  {neighbour.available > 0
+                    ? `${neighbour.available} on the shelf at ${neighbour.rack}`
+                    : "All copies are out"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </article>
   );
 }

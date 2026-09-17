@@ -2,6 +2,16 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-09-17 - Search
+
+- Semantic search over chapter summaries with Qdrant, filters and a keyword
+  fallback when the vector service is down
+- Hybrid ranking with reciprocal rank fusion
+- Similar books and alternative chapters on the book page
+- Faculty syllabus suggestions, review and coverage
+- Vector console for drift and rebuilds, plus a 25-query labelled evaluation
+- Runbook for the worker, rebuilds and outages
+
 ## 2026-09-13 - The desk
 
 - Circulation desk: issue, return, renew and hold pickup with printed slips
