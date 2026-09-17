@@ -12,6 +12,7 @@ export const NAV: Record<RoleName, NavItem[]> = {
   FACULTY: [
     { href: "/faculty", label: "Overview" },
     { href: "/faculty/units", label: "Units" },
+    { href: "/faculty/coverage", label: "Coverage" },
     { href: "/student", label: "Borrowing" },
     { href: "/account", label: "Account" },
   ],
