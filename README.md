@@ -72,3 +72,8 @@ Every setting is read from `.env` and validated at boot; a missing or placeholde
 - `docs/database/` entity relationship and relational schema diagrams
 - `docs/DESIGN.md` the design system
 - `db/migrations/README.md` migration rules
+
+## Operating the vector index
+
+The worker, rebuild, drift checks and evaluation are described in
+[docs/RUNBOOK.md](docs/RUNBOOK.md).
