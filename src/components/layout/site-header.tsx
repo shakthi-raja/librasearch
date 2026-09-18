@@ -10,6 +10,9 @@ export async function SiteHeader() {
       <div className="container-app flex h-[var(--bar-height)] items-center justify-between gap-4">
         <Wordmark />
         <nav aria-label="Site" className="flex items-center gap-1 sm:gap-2">
+          <Link href="/search" className="nav-link">
+            Search
+          </Link>
           <Link href="/catalog" className="nav-link">
             Catalogue
           </Link>

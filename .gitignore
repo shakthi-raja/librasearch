@@ -47,3 +47,5 @@ next-env.d.ts
 
 # playwright sessions
 tests/e2e/.auth/
+
+!src/app/faculty/coverage

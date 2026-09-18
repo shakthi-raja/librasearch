@@ -1,121 +1,209 @@
+import type { RowDataPacket } from "mysql2/promise";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Availability } from "@/components/catalog/availability";
-import { Highlighted } from "@/components/search/highlighted";
-import { SearchForm } from "@/components/search/search-form";
-import { queryTerms } from "@/lib/search/highlight";
-import { first } from "@/lib/url/list-params";
-import { searchQuerySchema } from "@/lib/validation/search";
-import { currentUser } from "@/server/auth/current";
-import { keywordSearch } from "@/server/services/search";
+import { pool } from "@/server/db/pool";
+import { runSearch, type SearchFilters, type SearchMode } from "@/server/search/run";
 
-export const metadata: Metadata = {
-  title: "Search",
-  description: "Search chapters and books by topic, title or author.",
+export const metadata: Metadata = { title: "Search" };
+
+type Params = {
+  q?: string;
+  mode?: string;
+  category?: string;
+  language?: string;
+  yearFrom?: string;
+  yearTo?: string;
 };
 
-const ordinal = (n: number) => {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+const number = (value: string | undefined) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 };
 
-export default async function SearchPage({ searchParams }: PageProps<"/search">) {
+export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
-  const raw = first(params, "q") ?? "";
-  const parsed = searchQuerySchema.safeParse({ q: raw });
+  const query = (params.q ?? "").trim();
+  const mode: SearchMode =
+    params.mode === "semantic" || params.mode === "keyword" ? params.mode : "hybrid";
+  const yearFrom = number(params.yearFrom);
+  const yearTo = number(params.yearTo);
+  const filters: SearchFilters = {
+    ...(params.category ? { categorySlug: params.category } : {}),
+    ...(params.language ? { language: params.language } : {}),
+    ...(yearFrom !== undefined ? { yearFrom } : {}),
+    ...(yearTo !== undefined ? { yearTo } : {}),
+  };
 
-  if (!parsed.success) {
-    return (
-      <div className="grid gap-[var(--space-lg)]">
-        <h1>Search the library</h1>
-        <SearchForm defaultValue={raw} />
-        {raw ? <p className="text-muted">{parsed.error.issues[0]?.message}</p> : null}
-      </div>
-    );
-  }
+  const db = pool("student");
+  const [categories] = await db.query<RowDataPacket[]>(
+    "SELECT slug, name, path, depth FROM v_category_tree ORDER BY path",
+  );
+  const [languages] = await db.query<RowDataPacket[]>(
+    "SELECT DISTINCT language FROM books WHERE status = 'ACTIVE' ORDER BY language",
+  );
 
-  const q = parsed.data.q;
-  const user = await currentUser();
-  const { chapters, books } = await keywordSearch(q, user?.userId ?? null);
-  const terms = queryTerms(q);
+  const result = query ? await runSearch(query, mode, filters) : null;
 
   return (
-    <div className="grid gap-[var(--space-xl)]">
-      <div className="grid gap-[var(--space-md)]">
-        <h1 className="max-w-none">Results for {q}</h1>
-        <SearchForm defaultValue={q} />
-        <p className="text-sm text-muted">
-          Keyword match on chapter titles, summaries, book descriptions and authors.
+    <div className="grid gap-[var(--space-2xl)]">
+      <header className="grid max-w-[62rem] gap-[var(--space-md)]">
+        <p className="text-sm text-muted">Discovery</p>
+        <h1 className="text-[length:var(--text-4xl)]">Search the shelves</h1>
+        <p className="max-w-[58ch] text-ink-2">
+          Find a chapter by what it says, not only by the words in its title. Semantic and keyword
+          matches are fused, and the shelf tells you where to go.
         </p>
-      </div>
 
-      {chapters.length === 0 && books.length === 0 ? (
-        <section className="ruled max-w-[44rem] py-[var(--space-lg)]">
-          <h2 className="text-lg">No chapter uses those words</h2>
-          <p className="mt-1 text-muted">
-            Try the words a textbook would use, or fewer of them. Searches that find nothing are
-            passed on to the library when it plans purchases.
-          </p>
-        </section>
-      ) : (
-        <div className="grid gap-[var(--space-2xl)] xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <section aria-labelledby="chapters-heading" className="min-w-0">
-            <h2 id="chapters-heading" className="mb-[var(--space-sm)]">
-              Chapters
+        <form
+          action="/search"
+          method="get"
+          className="grid gap-[var(--space-sm)] border-y border-ink py-[var(--space-md)]"
+        >
+          <div className="flex flex-wrap gap-[var(--space-sm)]">
+            <label className="grid min-w-[16rem] flex-[2] gap-1 text-sm font-medium">
+              What are you looking for?
+              <input
+                name="q"
+                defaultValue={query}
+                placeholder="normalisation, distributed consensus, indexing"
+                className="input"
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Matching
+              <select name="mode" defaultValue={mode} className="select">
+                <option value="hybrid">Meaning and words</option>
+                <option value="semantic">Meaning only</option>
+                <option value="keyword">Words only</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-[var(--space-sm)]">
+            <label className="grid gap-1 text-sm font-medium">
+              Subject
+              <select name="category" defaultValue={params.category ?? ""} className="select">
+                <option value="">Any subject</option>
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {"  ".repeat(Number(category.depth))}
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Language
+              <select name="language" defaultValue={params.language ?? ""} className="select">
+                <option value="">Any language</option>
+                {languages.map((row) => (
+                  <option key={row.language} value={row.language}>
+                    {row.language}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid w-[6.5rem] gap-1 text-sm font-medium">
+              From year
+              <input
+                name="yearFrom"
+                type="number"
+                min={1900}
+                max={2100}
+                defaultValue={params.yearFrom ?? ""}
+                className="input"
+              />
+            </label>
+            <label className="grid w-[6.5rem] gap-1 text-sm font-medium">
+              To year
+              <input
+                name="yearTo"
+                type="number"
+                min={1900}
+                max={2100}
+                defaultValue={params.yearTo ?? ""}
+                className="input"
+              />
+            </label>
+            <button type="submit" className="btn btn-primary">
+              Search
+            </button>
+          </div>
+        </form>
+      </header>
+
+      {result?.semanticDown ? (
+        <p role="status" className="border-l-2 border-signal pl-[var(--space-sm)] text-sm">
+          Semantic search is unavailable, so these are keyword matches. Try again in a moment.
+        </p>
+      ) : null}
+
+      {result ? (
+        <section aria-labelledby="results-heading" className="grid gap-[var(--space-md)]">
+          <div className="flex flex-wrap items-baseline justify-between gap-[var(--space-sm)]">
+            <h2 id="results-heading" className="text-lg">
+              {result.hits.length === 1 ? "One chapter" : `${result.hits.length} chapters`}
             </h2>
-            <ol className="ruled">
-              {chapters.map((c) => (
-                <li key={c.chapterId} className="grid gap-[var(--space-xs)] py-[var(--space-md)]">
+            <p className="text-sm text-muted">
+              {result.mode === "hybrid"
+                ? "Meaning and words, fused by rank"
+                : result.mode === "semantic"
+                  ? "Nearest chapters by meaning"
+                  : "Best keyword matches"}
+            </p>
+          </div>
+
+          {result.hits.length === 0 ? (
+            <p className="text-muted">
+              Nothing matched. Try a broader phrase, another subject, or drop the year limits.
+            </p>
+          ) : (
+            <ul className="ruled">
+              {result.hits.map((hit) => (
+                <li key={hit.chapterId} className="grid gap-[var(--space-xs)] py-[var(--space-lg)]">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-md)] gap-y-1">
                     <h3 className="text-lg">
-                      <Highlighted text={c.title} terms={terms} />
+                      <Link
+                        href={`/catalog/${hit.bookId}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {hit.bookTitle}
+                      </Link>
                     </h3>
-                    <span className="text-xs text-muted tabular-nums">
-                      keyword score {c.score.toFixed(2)}
-                    </span>
+                    <p className="text-sm text-muted">
+                      Chapter {hit.chapterNo}: {hit.chapterTitle}
+                    </p>
                   </div>
-                  <p className="text-sm text-ink-2">
-                    Chapter {c.chapterNo} in {c.bookTitle}, {ordinal(c.editionNo)} edition,{" "}
-                    {c.pubYear}
+                  <p className="text-sm text-muted">
+                    {hit.authors} / {hit.categoryPath}
                   </p>
-                  <p className="max-w-[70ch] text-muted">
-                    <Highlighted text={c.summary} terms={terms} />
-                  </p>
-                  <div className="flex flex-wrap items-center gap-[var(--space-sm)] text-sm">
-                    <Availability available={c.availableCopies} total={c.totalCopies} />
-                    {c.racks.length > 0 ? (
-                      <span className="figure text-ink-2">{c.racks.join(", ")}</span>
+                  <div className="flex flex-wrap items-center gap-x-[var(--space-md)] gap-y-1 text-sm">
+                    <span className={hit.available > 0 ? "chip chip-in-date" : "chip chip-error"}>
+                      {hit.available > 0 ? `${hit.available} on the shelf` : "All copies are out"}
+                    </span>
+                    {hit.available > 0 && hit.rack ? (
+                      <span className="figure">
+                        {hit.rack}, shelf {hit.shelf}
+                      </span>
+                    ) : null}
+                    {hit.sources ? (
+                      <span className="text-muted">
+                        {hit.sources.semantic ? `meaning #${hit.sources.semantic}` : ""}
+                        {hit.sources.semantic && hit.sources.keyword ? " / " : ""}
+                        {hit.sources.keyword ? `words #${hit.sources.keyword}` : ""}
+                      </span>
                     ) : null}
                   </div>
                 </li>
               ))}
-            </ol>
-          </section>
-
-          {books.length > 0 ? (
-            <aside aria-labelledby="books-heading">
-              <h2 id="books-heading" className="mb-[var(--space-sm)]">
-                Books
-              </h2>
-              <ul className="ruled">
-                {books.map((b) => (
-                  <li key={b.bookId} className="grid gap-1 py-[var(--space-sm)]">
-                    <Link href={`/catalog/${b.bookId}`} className="font-medium">
-                      <Highlighted text={b.title} terms={terms} />
-                    </Link>
-                    <span className="text-sm text-muted">
-                      <Highlighted text={b.authors} terms={terms} />
-                    </span>
-                    <span className="text-sm">
-                      <Availability available={b.availableCopies} total={b.totalCopies} />
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </aside>
-          ) : null}
-        </div>
+            </ul>
+          )}
+        </section>
+      ) : (
+        <p className="max-w-[54rem] text-muted">
+          Ask for a topic, a problem, or a phrase you remember. Results show the chapter and the
+          shelf its copies sit on.
+        </p>
       )}
     </div>
   );

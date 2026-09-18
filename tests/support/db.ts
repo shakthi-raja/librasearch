@@ -15,3 +15,17 @@ export async function adminConnection(options: { multipleStatements?: boolean } 
     multipleStatements: options.multipleStatements ?? false,
   });
 }
+
+/** Pool for code that needs `getConnection`, such as the worker claim. */
+export async function adminPool() {
+  const admin = parseEnv(adminEnvSchema, process.env);
+  return mysql.createPool({
+    host: admin.DB_HOST,
+    port: admin.DB_PORT,
+    user: admin.DB_ADMIN_USER,
+    password: admin.DB_ADMIN_PASSWORD,
+    database: admin.DB_NAME,
+    timezone: "Z",
+    connectionLimit: 4,
+  });
+}
