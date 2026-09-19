@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DecisionForm } from "@/components/admin/decision-form";
+import { ReceiveForm } from "@/components/admin/receive-form";
 import { ActionForm, Field } from "@/components/forms/action-form";
 import { PageHeader } from "@/components/layout/app-shell";
 import { formatDateTime } from "@/lib/format";
@@ -149,6 +150,7 @@ export default async function ProcurementPage() {
                   <th scope="col">Asked by</th>
                   <th scope="col">Decided</th>
                   <th scope="col">Note</th>
+                  <th scope="col">Receive</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,6 +168,13 @@ export default async function ProcurementPage() {
                       {formatDateTime(new Date(row.decidedAt ?? row.createdAt))}
                     </td>
                     <td className="max-w-64 text-sm">{row.note ?? "No note"}</td>
+                    <td>
+                      {row.status === "APPROVED" || row.status === "ORDERED" ? (
+                        <ReceiveForm requestId={row.requestId} quantity={row.quantity} />
+                      ) : (
+                        <span className="text-muted">No action</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -5,7 +5,11 @@ import {
   type DuplicateCandidate,
   findDuplicates,
 } from "@/lib/procurement/duplicates";
+import type { ReceiveInput } from "@/lib/validation/procurement";
 import { pool } from "@/server/db/pool";
+import { withTransaction } from "@/server/db/transaction";
+import { AppError } from "@/server/http/errors";
+import { insertCopies } from "@/server/repositories/admin-catalog";
 
 export type ProcurementRow = {
   requestId: number;
@@ -87,4 +91,63 @@ export async function procurementQueue(): Promise<ProcurementQueue> {
     pending: rows.filter((row) => row.status === "PENDING"),
     decided: rows.filter((row) => row.status !== "PENDING"),
   };
+}
+
+/** Turns an approved order into shelf copies and closes the request. */
+export async function receiveOrder(input: ReceiveInput, actorId: number): Promise<number> {
+  return withTransaction(pool("librarian"), async (conn) => {
+    await conn.query("SET @app_user_id = ?", [actorId]);
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT request_id, title, isbn13, quantity, status
+         FROM purchase_requests WHERE request_id = ? FOR UPDATE`,
+      [input.requestId],
+    );
+    const request = rows[0];
+    if (!request) throw new AppError("NOT_FOUND", "That request does not exist.");
+    if (request.status !== "APPROVED" && request.status !== "ORDERED") {
+      throw new AppError("CONFLICT", "Only an approved request can be received.");
+    }
+
+    let editionId: number | null = null;
+    if (request.isbn13) {
+      const [editions] = await conn.query<RowDataPacket[]>(
+        `SELECT edition_id FROM editions WHERE isbn13 = ? ORDER BY edition_no DESC LIMIT 1`,
+        [request.isbn13],
+      );
+      editionId = editions[0] ? Number(editions[0].edition_id) : null;
+    }
+    if (editionId === null) {
+      const [books] = await conn.query<RowDataPacket[]>(
+        `SELECT (SELECT e.edition_id FROM editions e
+                  WHERE e.book_id = b.book_id ORDER BY e.edition_no DESC LIMIT 1) AS edition_id
+           FROM books b
+          WHERE b.status = 'ACTIVE' AND LOWER(b.title) = LOWER(?)
+          LIMIT 1`,
+        [request.title],
+      );
+      editionId = books[0]?.edition_id ? Number(books[0].edition_id) : null;
+    }
+    if (editionId === null) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "Add that book to the catalogue before receiving the order.",
+      );
+    }
+
+    await insertCopies(conn, {
+      editionId,
+      rack: input.rack,
+      shelf: input.shelf,
+      count: input.count,
+      loanPolicy: "REGULAR",
+    });
+    await conn.query(
+      `UPDATE purchase_requests
+          SET status = 'RECEIVED', received_at = NOW(3), vendor = ?,
+              reviewed_by = COALESCE(reviewed_by, ?), reviewed_at = COALESCE(reviewed_at, NOW(3))
+        WHERE request_id = ?`,
+      [input.vendor, actorId, input.requestId],
+    );
+    return input.count;
+  });
 }

@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import type { z } from "zod";
 import type { FormState } from "@/components/forms/action-form";
-import { decisionSchema, purchaseRequestSchema } from "@/lib/validation/procurement";
+import { decisionSchema, purchaseRequestSchema, receiveSchema } from "@/lib/validation/procurement";
 import { requireUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import { withTransaction } from "@/server/db/transaction";
 import { AppError } from "@/server/http/errors";
 import { decideRequest, insertRequest } from "@/server/repositories/procurement";
+import { receiveOrder } from "@/server/services/procurement";
 
 export type { FormState };
 
@@ -56,4 +57,20 @@ export async function decideAction(_: FormState, form: FormData): Promise<FormSt
   }
   revalidatePath("/admin/procurement");
   return { ok: parsed.data.decision === "APPROVED" ? "Approved to order." : "Rejected." };
+}
+
+export async function receiveAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser("LIBRARIAN");
+  const parsed = receiveSchema.safeParse(fields(form));
+  if (!parsed.success) return invalid(parsed.error);
+
+  try {
+    const copies = await receiveOrder(parsed.data, user.userId);
+    revalidatePath("/admin/procurement");
+    revalidatePath("/admin/demand");
+    return { ok: `${copies} ${copies === 1 ? "copy" : "copies"} added to the shelf.` };
+  } catch (error) {
+    if (error instanceof AppError) return { error: error.message };
+    return { error: "The order could not be received." };
+  }
 }
