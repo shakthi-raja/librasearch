@@ -7,12 +7,14 @@ export type NavItem = { href: Route; label: string };
 export const NAV: Record<RoleName, NavItem[]> = {
   STUDENT: [
     { href: "/student", label: "Overview" },
+    { href: "/notices", label: "Notices" },
     { href: "/account", label: "Account" },
   ],
   FACULTY: [
     { href: "/faculty", label: "Overview" },
     { href: "/faculty/units", label: "Units" },
     { href: "/faculty/coverage", label: "Coverage" },
+    { href: "/notices", label: "Notices" },
     { href: "/student", label: "Borrowing" },
     { href: "/account", label: "Account" },
   ],
@@ -28,6 +30,7 @@ export const NAV: Record<RoleName, NavItem[]> = {
     { href: "/admin/analytics", label: "Analytics" },
     { href: "/admin/audit", label: "Audit" },
     { href: "/admin/settings", label: "Settings" },
+    { href: "/admin/notices", label: "Notices" },
     { href: "/admin/vector", label: "Vector" },
     { href: "/admin/catalog", label: "Catalogue" },
     { href: "/admin/import", label: "Import" },
