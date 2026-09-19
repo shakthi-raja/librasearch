@@ -27,3 +27,13 @@ export const decisionSchema = z.object({
 
 export type PurchaseRequestInput = z.infer<typeof purchaseRequestSchema>;
 export type DecisionInput = z.infer<typeof decisionSchema>;
+
+export const receiveSchema = z.object({
+  requestId: z.coerce.number().int().positive(),
+  vendor: z.string().trim().min(2, "Say who supplied the copies").max(120),
+  rack: z.string().regex(/^[A-Z]{2,3}-\d{2}$/, "Choose a rack"),
+  shelf: z.string().regex(/^S[1-9]$/, "Choose a shelf"),
+  count: z.coerce.number().int().min(1, "Receive at least one copy").max(50),
+});
+
+export type ReceiveInput = z.infer<typeof receiveSchema>;
