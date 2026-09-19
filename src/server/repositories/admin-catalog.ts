@@ -201,7 +201,7 @@ export async function insertEdition(conn: PoolConnection, bookId: number, input:
     "SELECT edition_id FROM editions WHERE book_id = ? AND edition_no < ? ORDER BY edition_no DESC LIMIT 1",
     [bookId, input.editionNo],
   );
-  await conn.query(
+  const [result] = await conn.query<ResultSetHeader>(
     `INSERT INTO editions (book_id, isbn13, edition_no, publisher_id, pub_year, page_count, format, previous_edition_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -215,6 +215,7 @@ export async function insertEdition(conn: PoolConnection, bookId: number, input:
       prev[0]?.edition_id ?? null,
     ],
   );
+  return result.insertId;
 }
 
 /**
