@@ -59,11 +59,15 @@ export default async function AnalyticsPage() {
           <p className="text-muted mb-[var(--space-sm)] text-sm">Loans issued, last 14 days.</p>
           <ol className="flex h-40 items-end gap-1 border-b border-rule pb-1">
             {stats.daily.map((day) => (
-              <li key={day.day} className="flex h-full flex-1 flex-col justify-end">
+              <li
+                key={day.day}
+                className="flex h-full flex-1 flex-col justify-end"
+                aria-label={`${formatDate(new Date(day.day))}: ${day.loans} loans`}
+              >
                 <div
                   className="w-full rounded-t-[2px] bg-signal"
                   style={{ height: `${Math.max(4, (day.loans / busiest) * 100)}%` }}
-                  title={`${formatDate(new Date(day.day))}: ${day.loans}`}
+                  aria-hidden="true"
                 />
               </li>
             ))}
@@ -91,7 +95,7 @@ export default async function AnalyticsPage() {
                     <span>{row.name}</span>
                     <span className="figure text-muted">{row.loans}</span>
                   </div>
-                  <div className="mt-1 h-2 rounded-pill bg-paper-3">
+                  <div className="mt-1 h-2 rounded-pill bg-paper-3" aria-hidden="true">
                     <div
                       className="h-2 rounded-pill bg-signal"
                       style={{ width: `${(row.loans / categoryTop) * 100}%` }}

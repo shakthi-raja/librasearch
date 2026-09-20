@@ -11,6 +11,8 @@ export function CommandPalette({ role }: { role: RoleName }) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const items = paletteItems(role, query);
 
@@ -19,13 +21,14 @@ export function CommandPalette({ role }: { role: RoleName }) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen((value) => !value);
-      } else if (event.key === "Escape") {
+      } else if (event.key === "Escape" && open) {
         setOpen(false);
+        triggerRef.current?.focus();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -35,9 +38,32 @@ export function CommandPalette({ role }: { role: RoleName }) {
     }
   }, [open]);
 
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
   const go = (href: Route) => {
     setOpen(false);
     router.push(href);
+  };
+
+  // Keep Tab inside the dialog while it is open.
+  const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([tabindex="-1"]), input, a[href], select, textarea',
+    );
+    if (!focusable || focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
   };
 
   const onInputKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -56,6 +82,7 @@ export function CommandPalette({ role }: { role: RoleName }) {
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         className="btn hidden md:inline-flex"
         onClick={() => setOpen(true)}
@@ -72,12 +99,14 @@ export function CommandPalette({ role }: { role: RoleName }) {
             aria-label="Close the command palette"
             tabIndex={-1}
             className="absolute inset-0 bg-ink/40"
-            onClick={() => setOpen(false)}
+            onClick={close}
           />
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
+            onKeyDown={trapFocus}
             className="relative w-[min(36rem,100%)] overflow-hidden rounded-[var(--radius-card)] border border-ink bg-paper-2 shadow-xl"
           >
             <input
