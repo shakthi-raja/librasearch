@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/wordmark";
 import { signOutAction } from "@/server/actions/sign-out";
 import type { SessionUser } from "@/server/services/auth";
+import { CommandPalette } from "./command-palette";
 import { ModeToggle } from "./mode-toggle";
 import { NAV, ROLE_LABEL } from "./nav";
 import { NavLinks } from "./nav-links";
@@ -24,6 +25,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
               <span className="block font-medium text-ink">{user.fullName}</span>
               <span className="block text-muted">{ROLE_LABEL[user.role]}</span>
             </p>
+            <CommandPalette role={user.role} />
             <ModeToggle />
             <form action={signOutAction}>
               <button type="submit" className="btn">
