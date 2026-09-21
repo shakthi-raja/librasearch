@@ -31,6 +31,17 @@ pnpm dev                      # http://localhost:3000
 
 MySQL listens on host port 3307 so it can sit beside a local server on 3306.
 
+### One command with the web app in a container
+
+```bash
+docker compose up -d --build   # web on 3000, mysql, qdrant and redis beside it
+pnpm db:migrate                # from the host, against the same MySQL
+```
+
+The image builds the Next.js app in standalone mode and runs it as the `node`
+user. The health endpoint at `/api/health` answers 200 only while the database
+is reachable, and compose waits for it before calling the service healthy.
+
 ### Demo accounts
 
 Seeded for local development only.
@@ -71,6 +82,9 @@ Every setting is read from `.env` and validated at boot; a missing or placeholde
 
 - `docs/database/` entity relationship and relational schema diagrams
 - `docs/DESIGN.md` the design system
+- `docs/RUNBOOK.md` worker, rebuilds, evaluation and outages
+- `docs/PERFORMANCE.md` the query plans behind the desk screens
+- `docs/ACCESSIBILITY.md` the keyboard and screen-reader pass
 - `db/migrations/README.md` migration rules
 
 ## Course
