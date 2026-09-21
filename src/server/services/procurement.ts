@@ -29,7 +29,7 @@ export type ProcurementRow = {
 
 export type ProcurementQueue = { pending: ProcurementRow[]; decided: ProcurementRow[] };
 
-const CANDIDATE_BOOKS = `
+const CANDIDATE_SELECT = `
   SELECT b.book_id, b.title,
          (SELECT GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ')
             FROM book_authors ba JOIN authors a ON a.author_id = ba.author_id
@@ -37,10 +37,40 @@ const CANDIDATE_BOOKS = `
          (SELECT e.isbn13 FROM editions e
            WHERE e.book_id = b.book_id ORDER BY e.edition_no DESC LIMIT 1) AS isbn13,
          (SELECT MAX(e.pub_year) FROM editions e WHERE e.book_id = b.book_id) AS latest_year
-    FROM books b
-   WHERE b.status = 'ACTIVE'
-   ORDER BY b.book_id
-   LIMIT 500`;
+    FROM books b`;
+
+const toCandidate = (row: RowDataPacket): CandidateBook => ({
+  bookId: Number(row.book_id),
+  title: String(row.title),
+  authors: row.authors ?? "",
+  isbn13: row.isbn13 ?? null,
+  year: row.latest_year === null ? null : Number(row.latest_year),
+});
+
+/**
+ * Every active book, plus any edition with the request's ISBN. The comparison
+ * runs in JavaScript: a catalogue of this size does not need the ranking of a
+ * full-text query, and the result does not drift with it.
+ */
+async function candidatesFor(
+  db: ReturnType<typeof pool>,
+  request: { isbn13: string | null },
+): Promise<CandidateBook[]> {
+  const byId = new Map<number, CandidateBook>();
+  const add = (row: RowDataPacket) => byId.set(Number(row.book_id), toCandidate(row));
+
+  const [rows] = await db.query<RowDataPacket[]>(`${CANDIDATE_SELECT} WHERE b.status = 'ACTIVE'`);
+  rows.forEach(add);
+
+  if (request.isbn13) {
+    const [isbnRows] = await db.query<RowDataPacket[]>(
+      `${CANDIDATE_SELECT} JOIN editions e ON e.book_id = b.book_id WHERE e.isbn13 = ? LIMIT 5`,
+      [request.isbn13],
+    );
+    isbnRows.forEach(add);
+  }
+  return [...byId.values()];
+}
 
 export async function procurementQueue(): Promise<ProcurementQueue> {
   const db = pool("librarian");
@@ -56,36 +86,35 @@ export async function procurementQueue(): Promise<ProcurementQueue> {
        LEFT JOIN courses c ON c.course_id = o.course_id
       ORDER BY r.created_at DESC, r.request_id DESC`,
   );
-  const [books] = await db.query<RowDataPacket[]>(CANDIDATE_BOOKS);
-  const catalogue: CandidateBook[] = books.map((book) => ({
-    bookId: Number(book.book_id),
-    title: book.title,
-    authors: book.authors ?? "",
-    isbn13: book.isbn13 ?? null,
-    year: book.latest_year === null ? null : Number(book.latest_year),
-  }));
-
-  const rows = requests.map((row) => {
-    const status = String(row.status);
-    return {
-      requestId: Number(row.request_id),
-      title: row.title,
-      author: row.author,
-      isbn13: row.isbn13,
-      quantity: Number(row.quantity),
-      reason: row.reason,
-      status,
-      note: row.review_note,
-      requester: row.requester,
-      unit: row.course_code ? `${row.course_code} · Unit ${row.unit_no}` : null,
-      createdAt: new Date(row.created_at).toISOString(),
-      decidedAt: row.reviewed_at === null ? null : new Date(row.reviewed_at).toISOString(),
-      duplicates:
+  const rows = await Promise.all(
+    requests.map(async (row): Promise<ProcurementRow> => {
+      const status = String(row.status);
+      const duplicates =
         status === "PENDING"
-          ? findDuplicates({ title: row.title, author: row.author, isbn13: row.isbn13 }, catalogue)
-          : [],
-    } satisfies ProcurementRow;
-  });
+          ? findDuplicates(
+              { title: row.title, author: row.author, isbn13: row.isbn13 },
+              await candidatesFor(db, {
+                isbn13: row.isbn13 === null ? null : String(row.isbn13),
+              }),
+            )
+          : [];
+      return {
+        requestId: Number(row.request_id),
+        title: row.title,
+        author: row.author,
+        isbn13: row.isbn13,
+        quantity: Number(row.quantity),
+        reason: row.reason,
+        status,
+        note: row.review_note,
+        requester: row.requester,
+        unit: row.course_code ? `${row.course_code} · Unit ${row.unit_no}` : null,
+        createdAt: new Date(row.created_at).toISOString(),
+        decidedAt: row.reviewed_at === null ? null : new Date(row.reviewed_at).toISOString(),
+        duplicates,
+      };
+    }),
+  );
 
   return {
     pending: rows.filter((row) => row.status === "PENDING"),
