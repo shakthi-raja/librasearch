@@ -127,16 +127,15 @@ describe("libraryAnalytics", () => {
 
   it("returns fourteen ascending days with today's traffic", async () => {
     const before = await libraryAnalytics();
-    const stock = await insertStockedBook(db, 1);
+    const stock = await insertStockedBook(db, 3);
     const student = await insertUser(db, "STUDENT");
     for (let i = 0; i < 3; i++) {
       const borrower = i === 0 ? student : await insertUser(db, "STUDENT");
       const lo = await loan({
-        copyId: stock.copyIds[0] as number,
+        copyId: stock.copyIds[i] as number,
         memberId: borrower,
         issuedDaysAgo: 0,
         dueInDays: 5,
-        returnedDaysAgo: 0,
       });
       expect(lo).toBeGreaterThan(0);
     }
