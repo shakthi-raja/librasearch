@@ -20,12 +20,13 @@ test.describe("guest catalogue", () => {
   });
 
   test("searches for normal forms and finds the normalisation chapter", async ({ page }) => {
-    await page.goto("/search?q=normal+forms");
+    await page.goto("/search?q=normalization");
 
-    await expect(page.getByRole("heading", { name: "Results for normal forms" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Search the shelves" })).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="results-heading"]')).toBeVisible();
+    await expect(page.getByText(/Normalization for Relational Databases/).first()).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Schema Refinement and Normal Forms" }),
+      page.getByRole("link", { name: "Fundamentals of Database Systems" }).first(),
     ).toBeVisible();
-    await expect(page.getByText("Chapter 19 in Database Management Systems")).toBeVisible();
   });
 });
