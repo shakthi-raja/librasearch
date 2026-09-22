@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Red_Hat_Display, Red_Hat_Mono, Red_Hat_Text } from "next/font/google";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { MODE_SCRIPT } from "@/components/layout/mode-toggle";
 import "./globals.css";
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
   description: "Find the chapter your syllabus means, and the copy on the shelf.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // set by the proxy; reading it renders every page per request, which the
+  // nonce needs anyway
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en-IN"
@@ -32,7 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static mode script, no user input */}
-        <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
       </head>
       <body>{children}</body>
     </html>
