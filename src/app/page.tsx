@@ -26,7 +26,7 @@ export default function HomePage() {
             <SearchForm size="hero" />
           </div>
 
-          <figure className="relative m-0">
+          <figure className="m-0">
             <div className="aspect-[3/2] overflow-hidden rounded-[var(--radius-card)] border border-ink">
               <StackMap
                 title="Plan of the library floor with three racks marked"
@@ -39,61 +39,63 @@ export default function HomePage() {
                 ]}
               />
             </div>
-            <div className="entry absolute right-[var(--space-md)] bottom-[var(--space-md)] hidden w-[17rem] sm:block">
-              <div className="entry-head flex items-baseline justify-between px-[var(--space-md)] py-[var(--space-sm)]">
-                <span className="text-sm font-medium">On the shelf</span>
-                <span className="figure text-[length:var(--text-2xl)]">CS-04</span>
+            <div className="mt-[var(--space-sm)] flex flex-wrap items-start justify-between gap-[var(--space-md)]">
+              <div className="entry order-last ml-auto hidden w-[17rem] shrink-0 sm:block">
+                <div className="entry-head flex items-baseline justify-between px-[var(--space-md)] py-[var(--space-sm)]">
+                  <span className="text-sm font-medium">On the shelf</span>
+                  <span className="figure text-[length:var(--text-2xl)]">CS-04</span>
+                </div>
+                <dl className="notebook grid grid-cols-2 border-t border-ink">
+                  {RACK_CARD.map(([term, value], i) => (
+                    <div
+                      key={term}
+                      className={`grid gap-0.5 border-ink px-[var(--space-md)] py-[var(--space-xs)] ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b" : ""}`}
+                    >
+                      <dt className="text-xs text-muted">{term}</dt>
+                      <dd className="m-0 text-sm font-medium">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
-              <dl className="notebook grid grid-cols-2 border-t border-ink">
-                {RACK_CARD.map(([term, value], i) => (
-                  <div
-                    key={term}
-                    className={`grid gap-0.5 border-ink px-[var(--space-md)] py-[var(--space-xs)] ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b" : ""}`}
+              <figcaption className="flex flex-wrap content-start gap-x-[var(--space-md)] gap-y-1 text-sm text-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <svg
+                    viewBox="-8 -8 16 16"
+                    width="12"
+                    height="12"
+                    aria-hidden="true"
+                    className="fill-ink"
                   >
-                    <dt className="text-xs text-muted">{term}</dt>
-                    <dd className="m-0 text-sm font-medium">{value}</dd>
-                  </div>
-                ))}
-              </dl>
+                    <circle r="6" />
+                  </svg>
+                  On the shelf
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <svg
+                    viewBox="-8 -8 16 16"
+                    width="12"
+                    height="12"
+                    aria-hidden="true"
+                    className="fill-ink"
+                  >
+                    <rect x="-5" y="-5" width="10" height="10" transform="rotate(45)" />
+                  </svg>
+                  Waiting on the hold shelf
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <svg
+                    viewBox="-8 -8 16 16"
+                    width="12"
+                    height="12"
+                    aria-hidden="true"
+                    className="fill-ink"
+                  >
+                    <path d="M0 -7 L6.5 5 L-6.5 5 Z" />
+                  </svg>
+                  On loan
+                </span>
+              </figcaption>
             </div>
-            <figcaption className="mt-[var(--space-xs)] flex flex-wrap gap-x-[var(--space-md)] gap-y-1 text-sm text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <svg
-                  viewBox="-8 -8 16 16"
-                  width="12"
-                  height="12"
-                  aria-hidden="true"
-                  className="fill-ink"
-                >
-                  <circle r="6" />
-                </svg>
-                On the shelf
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <svg
-                  viewBox="-8 -8 16 16"
-                  width="12"
-                  height="12"
-                  aria-hidden="true"
-                  className="fill-ink"
-                >
-                  <rect x="-5" y="-5" width="10" height="10" transform="rotate(45)" />
-                </svg>
-                Waiting on the hold shelf
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <svg
-                  viewBox="-8 -8 16 16"
-                  width="12"
-                  height="12"
-                  aria-hidden="true"
-                  className="fill-ink"
-                >
-                  <path d="M0 -7 L6.5 5 L-6.5 5 Z" />
-                </svg>
-                On loan
-              </span>
-            </figcaption>
           </figure>
         </section>
       </main>
