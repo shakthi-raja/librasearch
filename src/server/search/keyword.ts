@@ -1,11 +1,17 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
+import { allTermsQuery, phraseQuery } from "@/lib/search/fulltext";
 import { pool } from "@/server/db/pool";
 import { categorySubtreeIds, type SearchFilters, type SearchHit } from "./semantic";
 
 /**
  * The keyword half of hybrid search. MySQL FULLTEXT ranks the same chapter
  * rows the vector side returns, so the two ranks can be fused directly.
+ *
+ * Chapters that contain every word of the query come first, the exact phrase
+ * ahead of the rest. When at least one chapter has every word, chapters that
+ * share only some of them are dropped: they are the noise of natural-language
+ * mode, not partial answers.
  */
 export async function keywordSearch(
   query: string,
@@ -17,8 +23,13 @@ export async function keywordSearch(
     ? await categorySubtreeIds(db, filters.categorySlug)
     : null;
 
+  const allTerms = allTermsQuery(query);
+  const phrase = phraseQuery(query);
   const conditions = ["b.status = 'ACTIVE'"];
-  const params: unknown[] = [query, query];
+  const params: unknown[] = [query];
+  if (allTerms) params.push(allTerms);
+  if (phrase) params.push(phrase);
+  params.push(query);
 
   if (categoryIds) {
     conditions.push(`b.category_id IN (${categoryIds.map(() => "?").join(",")})`);
@@ -54,19 +65,24 @@ export async function keywordSearch(
             (SELECT MIN(cp.shelf_code) FROM copies cp
               WHERE cp.edition_id = e.edition_id AND cp.status = 'AVAILABLE'
                 AND cp.loan_policy <> 'REFERENCE_ONLY') AS shelf,
-            MATCH(c.title, c.summary) AGAINST(? IN NATURAL LANGUAGE MODE) AS relevance
+            MATCH(c.title, c.summary) AGAINST(? IN NATURAL LANGUAGE MODE) AS relevance,
+            ${allTerms ? "MATCH(c.title, c.summary) AGAINST(? IN BOOLEAN MODE) > 0" : "0"} AS has_all,
+            ${phrase ? "MATCH(c.title, c.summary) AGAINST(? IN BOOLEAN MODE) > 0" : "0"} AS has_phrase
        FROM chapters c
        JOIN editions e ON e.edition_id = c.edition_id
        JOIN books b ON b.book_id = e.book_id
        LEFT JOIN v_category_tree t ON t.category_id = b.category_id
       WHERE MATCH(c.title, c.summary) AGAINST(? IN NATURAL LANGUAGE MODE)
         AND ${conditions.join(" AND ")}
-      ORDER BY relevance DESC, c.chapter_id
+      ORDER BY has_all DESC, has_phrase DESC, relevance DESC, c.chapter_id
       LIMIT ?`,
     params,
   );
 
-  return rows.map((row) => {
+  const complete = rows.some((row) => Number(row.has_all) === 1);
+  const kept = complete ? rows.filter((row) => Number(row.has_all) === 1) : rows;
+
+  return kept.map((row) => {
     const available = Number(row.available);
     return {
       chapterId: Number(row.chapter_id),
