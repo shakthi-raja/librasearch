@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import { runSearch, type SearchFilters, type SearchMode } from "@/server/search/run";
 
@@ -42,7 +43,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     "SELECT DISTINCT language FROM books WHERE status = 'ACTIVE' ORDER BY language",
   );
 
-  const result = query ? await runSearch(query, mode, filters) : null;
+  const user = query ? await currentUser() : null;
+  const result = query ? await runSearch(query, mode, filters, user?.userId ?? null) : null;
 
   return (
     <div className="grid gap-[var(--space-2xl)]">
