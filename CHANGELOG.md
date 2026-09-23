@@ -2,6 +2,18 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-09-21 - Operations
+
+- Demand planner, exam lending policies and their automatic expiry
+- Procurement requests with near-duplicate checks, approval and receiving
+- CSV import with a row-by-row preview and error report
+- Analytics dashboard, audit browser and editable library settings
+- In-app notices with unread tracking, and a Ctrl/Cmd+K command palette
+- Indexes and recorded query plans for the desk reads
+- Accessibility pass over the signed-in screens
+- One-container web image beside the MySQL, Qdrant and Redis services
+- Playwright coverage for discovery, mapping and procurement
+
 ## 2026-09-17 - Search
 
 - Semantic search over chapter summaries with Qdrant, filters and a keyword
