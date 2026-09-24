@@ -2,6 +2,15 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-09-23 - Hardening
+
+- Content security policy with a nonce per request, plus HSTS, frame,
+  referrer and permissions headers
+- The floor plan on the home page is no longer hidden behind the rack card
+- Keyword search ranks chapters with every query word, and the exact phrase,
+  first
+- Every search is recorded in the search log again
+
 ## 2026-09-21 - Operations
 
 - Demand planner, exam lending policies and their automatic expiry
