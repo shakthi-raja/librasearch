@@ -23,7 +23,8 @@ const window = () => ({
   absoluteHours: env().SESSION_ABSOLUTE_HOURS,
 });
 
-async function openSession(userId: number, meta: RequestMeta) {
+/** Issues a new session token for a verified member. */
+export async function openSession(userId: number, meta: RequestMeta) {
   const token = generateSessionToken();
   const now = new Date();
   const expiresAt = sessionExpiry(now, now, window());
