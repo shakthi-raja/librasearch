@@ -78,6 +78,19 @@ Every page checks the session and role on the server, and every database connect
 
 Every setting is read from `.env` and validated at boot; a missing or placeholder secret stops the process with the variable's name. `.env.example` lists them all. The admin database credential is used by migrations, seed and tests only, never by the running app.
 
+### Google sign-in
+
+Optional. Create an OAuth client of type "Web application" in the Google Cloud
+console, add `APP_URL/api/v1/auth/google/callback` as an authorised redirect
+URI (for example `https://library.example.org/api/v1/auth/google/callback`
+behind a tunnel), and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+- Nobody is created by Google sign-in. The first time, a member is found by
+  the verified address Google returns; after that, by Google's account id.
+- A member whose Google address differs from the college email signs in with
+  the university ID once and links Google from the account page.
+- Without the two variables the button is hidden and the routes refuse.
+
 ## Documentation
 
 - `docs/database/` entity relationship and relational schema diagrams
