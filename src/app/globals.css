@@ -156,6 +156,14 @@
     font-size: var(--text-sm);
   }
 
+  .notice-ok {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-pill);
+    background: var(--color-green-soft);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+  }
+
   /* a 1px ink rule over a list, hairlines between rows */
   .ruled {
     border-top: var(--rule-hair) solid var(--color-ink);
