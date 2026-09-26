@@ -42,6 +42,10 @@ export const appEnvSchema = z.object({
   SESSION_IDLE_HOURS: positiveInt.default(24 * 7),
   SESSION_ABSOLUTE_HOURS: positiveInt.default(24 * 30),
 
+  // Google sign-in is offered only when both are set
+  GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
+
   WORKER_POLL_MS: positiveInt.min(100).default(2000),
   WORKER_BATCH_SIZE: positiveInt.max(500).default(25),
 });

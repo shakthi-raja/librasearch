@@ -1,10 +1,12 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { changePasswordSchema } from "@/lib/validation/auth";
 import { sessionCookie } from "@/server/auth/cookie";
 import { requestMeta, requireUser } from "@/server/auth/current";
 import { changePassword } from "@/server/services/auth";
+import { unlinkGoogle } from "@/server/services/google-auth";
 
 type Field = "current" | "next" | "confirm";
 
@@ -46,4 +48,11 @@ export async function changePasswordAction(
   }
   (await cookies()).set(sessionCookie(result.token, result.expiresAt));
   return { done: true };
+}
+
+/** Removes the Google link; the password keeps working, so nobody is locked out. */
+export async function unlinkGoogleAction() {
+  const user = await requireUser();
+  await unlinkGoogle(user.userId);
+  redirect("/account?google=unlinked");
 }
