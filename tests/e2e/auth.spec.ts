@@ -20,6 +20,16 @@ test.describe("signing in", () => {
     await expect(page.locator("form p[role=alert]")).toContainText("incorrect");
   });
 
+  test("explains why a google sign-in was refused", async ({ page }) => {
+    await page.goto("/login?error=google_no_account");
+    await expect(page.locator("main p[role=alert]")).toContainText("not on the library's records");
+  });
+
+  test("a google callback without the flow cookie goes back to sign in", async ({ page }) => {
+    await page.goto("/api/v1/auth/google/callback?code=forged&state=forged");
+    await expect(page).toHaveURL(/\/login\?error=google_failed/);
+  });
+
   test("a guest is sent to sign in and back", async ({ page }) => {
     await page.goto("/admin/catalog");
     await expect(page).toHaveURL(/\/login\?next=%2Fadmin%2Fcatalog/);
@@ -40,5 +50,14 @@ test.describe("role boundaries", () => {
   test("a student reaches their own desk", async ({ page }) => {
     await page.goto(ROLES.student.home);
     await expect(page.getByRole("heading", { name: "Your loans" })).toBeVisible();
+  });
+});
+
+test.describe("account", () => {
+  test.use({ storageState: storageFor("student") });
+
+  test("offers google sign-in settings", async ({ page }) => {
+    await page.goto("/account");
+    await expect(page.getByRole("heading", { name: "Google sign-in" })).toBeVisible();
   });
 });
