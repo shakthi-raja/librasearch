@@ -26,8 +26,8 @@
     "db:reset": "tsx scripts/db-reset.ts",
     "db:seed": "tsx scripts/seed.ts",
     "test:e2e": "playwright test",
-    "worker:dev": "tsx worker/index.ts",
-    "worker:rebuild": "tsx worker/rebuild.ts",
+    "worker:dev": "tsx --conditions=react-server --env-file-if-exists=.env worker/index.ts",
+    "worker:rebuild": "tsx --conditions=react-server --env-file-if-exists=.env worker/rebuild.ts",
     "eval:search": "tsx scripts/eval-search.ts"
   },
   "dependencies": {

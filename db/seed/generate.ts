@@ -2,6 +2,26 @@ import { fakerEN_IN as faker } from "@faker-js/faker";
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { COURSES } from "./academic-data";
 import { BOOKS } from "./catalogue-data";
+import { SYLLABUS_BOOKS } from "./syllabus-books";
+import { SYLLABUS_COURSES, type SyllabusCourseSeed } from "./syllabus-courses";
+import { ELECTIVE_BOOKS } from "./syllabus-electives";
+
+const ALL_BOOKS = [...BOOKS, ...SYLLABUS_BOOKS, ...ELECTIVE_BOOKS];
+const ALL_COURSES: SyllabusCourseSeed[] = [
+  ...SYLLABUS_COURSES,
+  ...COURSES.map((course) => ({ ...course, elective: false, textbooks: [], references: [] })),
+];
+
+const ELECTIVE_CODES = SYLLABUS_COURSES.filter((course) => course.elective).map((c) => c.code);
+
+// Chapters of Database System Concepts (7th edition) a DBMS coordinator has
+// already approved for each unit, so the demo opens on a reviewed reading list.
+const APPROVED_DBMS: Record<number, number[]> = {
+  1: [1, 2, 3, 6],
+  2: [4, 5],
+  3: [7, 15, 16],
+  4: [17, 18],
+};
 
 /**
  * Deterministic people, courses, offerings and copies. The same seed always
@@ -136,6 +156,9 @@ export async function generate(
       [term.name, term.start, term.end, current],
     );
   }
+  const previousTermId = await id(db, "SELECT term_id AS id FROM academic_terms WHERE name = ?", [
+    PREVIOUS_TERM.name,
+  ]);
   const termId = await id(db, "SELECT term_id AS id FROM academic_terms WHERE name = ?", [
     CURRENT_TERM.name,
   ]);
@@ -164,7 +187,10 @@ export async function generate(
   // one coordinator per course; the demo faculty account (FAC0001) teaches DBMS
   let facultyNo = 1;
   let units = 0;
-  for (const course of COURSES) {
+  for (const course of ALL_COURSES) {
+    // odd semesters run this term; even ones ran last term and keep their units
+    const running = course.semester % 2 === 1;
+    const offeringTerm = running ? termId : previousTermId;
     await db.query(
       `INSERT INTO courses (course_code, title, dept_id, semester, credits, description)
        SELECT ?, ?, dept_id, ?, ?, ? FROM departments WHERE dept_code = ?
@@ -193,17 +219,17 @@ export async function generate(
 
     await db.query(
       `INSERT INTO course_offerings (course_id, term_id, section, coordinator_id, status)
-       SELECT c.course_id, ?, 'A', u.user_id, 'RUNNING'
+       SELECT c.course_id, ?, 'A', u.user_id, ?
          FROM courses c JOIN users u ON u.university_id = ?
         WHERE c.course_code = ?
        ON DUPLICATE KEY UPDATE coordinator_id = VALUES(coordinator_id), status = VALUES(status)`,
-      [termId, coordinatorId, course.code],
+      [offeringTerm, running ? "RUNNING" : "COMPLETED", coordinatorId, course.code],
     );
     const offeringId = await id(
       db,
       `SELECT o.offering_id AS id FROM course_offerings o JOIN courses c ON c.course_id = o.course_id
         WHERE c.course_code = ? AND o.term_id = ? AND o.section = 'A'`,
-      [course.code, termId],
+      [course.code, offeringTerm],
     );
 
     for (const [index, unit] of course.units.entries()) {
@@ -214,6 +240,24 @@ export async function generate(
       );
       units++;
     }
+
+    // prescribed books, in the order the syllabus lists them
+    for (const [role, isbns] of [
+      ["TEXTBOOK", course.textbooks],
+      ["REFERENCE", course.references],
+    ] as const) {
+      for (const [index, isbn] of isbns.entries()) {
+        await db.query(
+          `INSERT INTO course_books (course_id, book_id, role, position)
+           SELECT c.course_id, e.book_id, ?, ? FROM courses c JOIN editions e ON e.isbn13 = ?
+            WHERE c.course_code = ?
+           ON DUPLICATE KEY UPDATE role = VALUES(role), position = VALUES(position)`,
+          [role, index + 1, isbn, course.code],
+        );
+      }
+    }
+
+    if (!running) continue;
 
     // a mid-semester exam already past and an end-semester exam ahead
     const endStart = addDays(today, course.endSemInDays);
@@ -267,16 +311,58 @@ export async function generate(
        JOIN departments cd ON cd.dept_id = c.dept_id
       WHERE u.status = 'ACTIVE'
         AND c.semester IN ((2026 - u.batch_year) * 2 + 1, (2026 - u.batch_year) * 2)
-        AND (cd.dept_code = ud.dept_code OR (cd.dept_code = 'MATH' AND ud.dept_code IN ('CSE', 'ECE')))`,
-    [termId],
+        AND (cd.dept_code = ud.dept_code OR (cd.dept_code = 'MATH' AND ud.dept_code IN ('CSE', 'ECE')))
+        AND c.course_code NOT IN (?)`,
+    [termId, ELECTIVE_CODES],
   );
   void enrolled;
+
+  // each student takes two of the electives on offer in their semester, spread
+  // evenly and the same way on every run
+  await db.query(
+    `INSERT IGNORE INTO enrollments (student_id, offering_id)
+     SELECT student_id, offering_id FROM (
+       SELECT u.user_id AS student_id, o.offering_id,
+              ROW_NUMBER() OVER (PARTITION BY u.user_id ORDER BY MOD(u.user_id * 7919 + c.course_id * 104729, 997)) AS pick
+         FROM users u
+         JOIN roles r ON r.role_id = u.role_id AND r.role_name = 'STUDENT'
+         JOIN departments ud ON ud.dept_id = u.dept_id AND ud.dept_code = 'CSE'
+         JOIN course_offerings o ON o.term_id = ? AND o.status = 'RUNNING'
+         JOIN courses c ON c.course_id = o.course_id
+        WHERE u.status = 'ACTIVE'
+          AND c.course_code IN (?)
+          AND c.semester = (2026 - u.batch_year) * 2 + 1
+     ) choices
+     WHERE pick <= 2`,
+    [termId, ELECTIVE_CODES],
+  );
+
+  // the DBMS coordinator has reviewed the first reading list
+  const dbmsReviewer = await id(
+    db,
+    "SELECT user_id AS id FROM users WHERE university_id = 'FAC0001'",
+    [],
+  );
+  for (const [unitNo, chapterNos] of Object.entries(APPROVED_DBMS)) {
+    await db.query(
+      `INSERT INTO unit_chapter_map (unit_id, chapter_id, source, status, reviewed_by, reviewed_at)
+       SELECT su.unit_id, ch.chapter_id, 'MANUAL', 'APPROVED', ?, UTC_TIMESTAMP(3)
+         FROM syllabus_units su
+         JOIN course_offerings o ON o.offering_id = su.offering_id AND o.term_id = ?
+         JOIN courses c ON c.course_id = o.course_id AND c.course_code = 'UE24CS351A'
+         JOIN editions e ON e.isbn13 = '9780078022159'
+         JOIN chapters ch ON ch.edition_id = e.edition_id AND ch.chapter_no IN (?)
+        WHERE su.unit_no = ?
+       ON DUPLICATE KEY UPDATE status = VALUES(status)`,
+      [dbmsReviewer, termId, chapterNos, Number(unitNo)],
+    );
+  }
 
   // copies: scarce for the titles a whole cohort needs, one reading-room copy for those
   const SCARCE = new Set(["9780078022159", "9780262046305", "9781119320913", "9780133594140"]);
   let accession = 0;
   let copies = 0;
-  for (const book of BOOKS) {
+  for (const book of ALL_BOOKS) {
     const editions = [...book.editions].sort((a, b) => a.editionNo - b.editionNo);
     for (const [index, edition] of editions.entries()) {
       const latest = index === editions.length - 1;
@@ -330,7 +416,7 @@ export async function generate(
     students: students + 1,
     faculty: Number(counts?.faculty),
     librarians: Number(counts?.librarians),
-    courses: COURSES.length,
+    courses: ALL_COURSES.length,
     units,
     enrollments: Number(counts?.enrollments),
     copies,

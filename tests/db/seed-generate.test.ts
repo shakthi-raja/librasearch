@@ -76,4 +76,50 @@ describe("deterministic generator", () => {
     );
     expect(rows[0]?.days).toBe(7);
   });
+
+  it("prescribes the syllabus textbooks for each course", async () => {
+    const [rows] = await db.query<RowDataPacket[]>(
+      `SELECT b.title, cb.role, cb.position FROM course_books cb
+         JOIN courses c ON c.course_id = cb.course_id JOIN books b ON b.book_id = cb.book_id
+        WHERE c.course_code = 'UE24CS351A' ORDER BY cb.role, cb.position`,
+    );
+    expect(rows.slice(0, 2)).toEqual([
+      { title: "Fundamentals of Database Systems", role: "TEXTBOOK", position: 1 },
+      { title: "Database System Concepts", role: "TEXTBOOK", position: 2 },
+    ]);
+    expect(rows.filter((row) => row.role === "REFERENCE").length).toBe(3);
+  });
+
+  it("enrols each fifth-semester student in two electives, not all of them", async () => {
+    const [rows] = await db.query<RowDataPacket[]>(
+      `SELECT MIN(n) AS fewest, MAX(n) AS most FROM (
+         SELECT e.student_id, COUNT(*) AS n FROM enrollments e
+           JOIN course_offerings o ON o.offering_id = e.offering_id
+           JOIN courses c ON c.course_id = o.course_id
+          WHERE c.course_code REGEXP '^UE24CS34[23][AB][AB][0-9]'
+          GROUP BY e.student_id) per_student`,
+    );
+    expect(rows[0]).toEqual({ fewest: 2, most: 2 });
+  });
+
+  it("offers even-semester courses in the previous term", async () => {
+    const [rows] = await db.query<RowDataPacket[]>(
+      `SELECT o.status, t.is_current FROM course_offerings o
+         JOIN courses c ON c.course_id = o.course_id
+         JOIN academic_terms t ON t.term_id = o.term_id
+        WHERE c.course_code = 'UE24CS341B'`,
+    );
+    expect(rows[0]).toEqual({ status: "COMPLETED", is_current: 0 });
+  });
+
+  it("opens with an approved reading list for the DBMS course", async () => {
+    const [rows] = await db.query<RowDataPacket[]>(
+      `SELECT su.unit_no, COUNT(*) AS chapters FROM unit_chapter_map m
+         JOIN syllabus_units su ON su.unit_id = m.unit_id
+         JOIN course_offerings o ON o.offering_id = su.offering_id
+         JOIN courses c ON c.course_id = o.course_id AND c.course_code = 'UE24CS351A'
+        WHERE m.status = 'APPROVED' GROUP BY su.unit_no ORDER BY su.unit_no`,
+    );
+    expect(rows.map((row) => Number(row.chapters))).toEqual([4, 2, 3, 2]);
+  });
 });

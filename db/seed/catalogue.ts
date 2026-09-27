@@ -1,5 +1,9 @@
 import type { Connection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { BOOKS, type BookSeed, CATEGORIES, type EditionSeed, PUBLISHERS } from "./catalogue-data";
+import { SYLLABUS_BOOKS, SYLLABUS_CATEGORIES, SYLLABUS_PUBLISHERS } from "./syllabus-books";
+import { ELECTIVE_BOOKS } from "./syllabus-electives";
+
+const ALL_BOOKS = [...BOOKS, ...SYLLABUS_BOOKS, ...ELECTIVE_BOOKS];
 
 const slugify = (value: string) =>
   value
@@ -24,7 +28,7 @@ async function idBy(db: Connection, sql: string, params: unknown[]) {
 }
 
 async function seedPublishers(db: Connection) {
-  for (const p of PUBLISHERS) {
+  for (const p of [...PUBLISHERS, ...SYLLABUS_PUBLISHERS]) {
     await db.query(
       `INSERT INTO publishers (name, city, website) VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE city = VALUES(city), website = VALUES(website)`,
@@ -34,7 +38,7 @@ async function seedPublishers(db: Connection) {
 }
 
 async function seedCategories(db: Connection) {
-  for (const c of CATEGORIES) {
+  for (const c of [...CATEGORIES, ...SYLLABUS_CATEGORIES]) {
     const parentId = c.parent
       ? await idBy(db, "SELECT category_id AS id FROM categories WHERE slug = ?", [c.parent])
       : null;
@@ -149,10 +153,13 @@ export type CatalogueCounts = { books: number; editions: number; chapters: numbe
 export async function seedCatalogue(db: Connection): Promise<CatalogueCounts> {
   await seedPublishers(db);
   await seedCategories(db);
-  for (const book of BOOKS) await seedBook(db, book);
+  for (const book of ALL_BOOKS) await seedBook(db, book);
   return {
-    books: BOOKS.length,
-    editions: BOOKS.reduce((n, b) => n + b.editions.length, 0),
-    chapters: BOOKS.reduce((n, b) => n + b.editions.reduce((m, e) => m + e.chapters.length, 0), 0),
+    books: ALL_BOOKS.length,
+    editions: ALL_BOOKS.reduce((n, b) => n + b.editions.length, 0),
+    chapters: ALL_BOOKS.reduce(
+      (n, b) => n + b.editions.reduce((m, e) => m + e.chapters.length, 0),
+      0,
+    ),
   };
 }
