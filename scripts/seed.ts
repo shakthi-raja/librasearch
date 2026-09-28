@@ -3,6 +3,7 @@ import { hash } from "@node-rs/argon2";
 import type { Connection } from "mysql2/promise";
 import { seedCatalogue } from "../db/seed/catalogue";
 import { generate } from "../db/seed/generate";
+import { SEARCH_ALIASES } from "../db/seed/search-aliases";
 import { adminConnection, adminEnv } from "./lib/admin-db";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -113,6 +114,15 @@ async function main() {
       `academics    ${people.courses} courses, ${people.units} units, ${people.enrollments} enrollments`,
     );
     out(`stock        ${people.copies} copies`);
+
+    for (const [alias, expansion] of SEARCH_ALIASES) {
+      await db.query(
+        `INSERT INTO search_aliases (alias, expansion, source) VALUES (?, ?, 'SEEDED')
+         ON DUPLICATE KEY UPDATE expansion = IF(source = 'SEEDED', VALUES(expansion), expansion)`,
+        [alias, expansion],
+      );
+    }
+    out(`aliases      ${SEARCH_ALIASES.length}`);
   } finally {
     await db.end();
   }
