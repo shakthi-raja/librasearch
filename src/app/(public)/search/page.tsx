@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
+import type { CourseCard } from "@/server/search/course";
 import { runSearch, type SearchFilters, type SearchMode } from "@/server/search/run";
 
 export const metadata: Metadata = { title: "Search" };
@@ -134,6 +135,27 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </form>
       </header>
 
+      {result && result.understood.expansions.length > 0 ? (
+        <p role="status" className="text-ink-2">
+          Searching for{" "}
+          {result.understood.expansions.map((e, index) => (
+            <span key={e.alias}>
+              {index > 0 ? ", " : ""}
+              <span className="font-medium">{e.expansion}</span> ({e.alias})
+            </span>
+          ))}
+          .{" "}
+          <Link
+            href={`/search?q=${encodeURIComponent(`"${result.understood.original}"`)}&mode=keyword`}
+            className="text-sm underline underline-offset-4"
+          >
+            Search the exact words instead
+          </Link>
+        </p>
+      ) : null}
+
+      {result?.course ? <CourseSummary course={result.course} /> : null}
+
       {result?.semanticDown ? (
         <p role="status" className="border-l-2 border-signal pl-[var(--space-sm)] text-sm">
           Semantic search is unavailable, so these are keyword matches. Try again in a moment.
@@ -208,5 +230,54 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </p>
       )}
     </div>
+  );
+}
+
+function CourseSummary({ course }: { course: CourseCard }) {
+  return (
+    <section
+      aria-labelledby="course-heading"
+      className="grid gap-[var(--space-md)] border border-ink p-[var(--space-lg)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+    >
+      <div className="grid content-start gap-[var(--space-xs)]">
+        <p className="figure text-sm text-muted">
+          {course.code} / semester {course.semester}
+        </p>
+        <h2 id="course-heading" className="text-xl">
+          {course.title}
+        </h2>
+        {course.description ? <p className="text-sm text-ink-2">{course.description}</p> : null}
+        <ol className="mt-[var(--space-xs)] grid gap-1 text-sm">
+          {course.units.map((unit) => (
+            <li key={unit.unitNo}>
+              <span className="figure text-muted">Unit {unit.unitNo}</span> {unit.title}
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="grid content-start gap-[var(--space-xs)]">
+        <h3 className="text-sm font-medium">Prescribed books</h3>
+        {course.books.length === 0 ? (
+          <p className="text-sm text-muted">The syllabus names no books this library holds.</p>
+        ) : (
+          <ul className="ruled text-sm">
+            {course.books.map((book) => (
+              <li key={book.bookId} className="flex items-baseline justify-between gap-2 py-1.5">
+                <Link
+                  href={`/catalog/${book.bookId}`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {book.title}
+                </Link>
+                <span className="shrink-0 text-muted">
+                  {book.role === "TEXTBOOK" ? "Textbook" : "Reference"},{" "}
+                  {book.available > 0 ? `${book.available} in` : "all out"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
