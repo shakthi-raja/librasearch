@@ -303,6 +303,47 @@
     }
   }
 
+  /* plain tables on admin screens share the data table's rules */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .table thead tr {
+    border-bottom: var(--rule-hair) solid var(--color-ink);
+  }
+
+  .table th {
+    padding: var(--space-xs) var(--space-md) var(--space-xs) 0;
+    text-align: left;
+    white-space: nowrap;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+
+  .table td {
+    padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+    vertical-align: top;
+  }
+
+  .table th:last-child,
+  .table td:last-child {
+    padding-right: 0;
+  }
+
+  .table tbody tr {
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+  }
+
+  @media (max-width: 40rem) {
+    .table {
+      display: block;
+      overflow-x: auto;
+    }
+  }
+
   .nav-link {
     display: inline-flex;
     align-items: center;
