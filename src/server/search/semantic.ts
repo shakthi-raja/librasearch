@@ -1,8 +1,8 @@
 import "server-only";
 import type { Pool, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
-import { embedQuery } from "@/server/vector/embedding";
 import { qdrant } from "@/server/vector/qdrant";
+import { queryVector } from "./vectors";
 
 export type SearchFilters = {
   categorySlug?: string;
@@ -107,7 +107,7 @@ export async function semanticSearch(
   limit = 10,
 ): Promise<SearchHit[]> {
   const db = pool("student");
-  const vector = await embedQuery(query);
+  const vector = await queryVector(query);
   const categoryIds = filters.categorySlug
     ? await categorySubtreeIds(db, filters.categorySlug)
     : undefined;

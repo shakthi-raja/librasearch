@@ -4,7 +4,12 @@ import Link from "next/link";
 import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import type { CourseCard } from "@/server/search/course";
-import { runSearch, type SearchFilters, type SearchMode } from "@/server/search/run";
+import {
+  runSearch,
+  type SearchFilters,
+  type SearchMode,
+  type SearchResult,
+} from "@/server/search/run";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -45,7 +50,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   );
 
   const user = query ? await currentUser() : null;
-  const result = query ? await runSearch(query, mode, filters, user?.userId ?? null) : null;
+  const result = query
+    ? await runSearch(query, mode, filters, user ? { userId: user.userId, role: user.role } : null)
+    : null;
 
   return (
     <div className="grid gap-[var(--space-2xl)]">
@@ -177,6 +184,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </p>
           </div>
 
+          {result.books.length > 0 ? <BookMatches books={result.books} /> : null}
+
           {result.hits.length === 0 ? (
             <p className="text-muted">
               Nothing matched. Try a broader phrase, another subject, or drop the year limits.
@@ -210,14 +219,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         {hit.rack}, shelf {hit.shelf}
                       </span>
                     ) : null}
-                    {hit.sources ? (
-                      <span className="text-muted">
-                        {hit.sources.semantic ? `meaning #${hit.sources.semantic}` : ""}
-                        {hit.sources.semantic && hit.sources.keyword ? " / " : ""}
-                        {hit.sources.keyword ? `words #${hit.sources.keyword}` : ""}
+                    {hit.inSyllabus ? (
+                      <span className="chip chip-signal">
+                        Your syllabus: {hit.inSyllabus.courseCode} unit {hit.inSyllabus.unitNo}
                       </span>
+                    ) : hit.prescribedFor.length > 0 ? (
+                      <span className="chip">Prescribed for {hit.prescribedFor.join(", ")}</span>
                     ) : null}
                   </div>
+                  <p className="text-xs text-muted">{whyMatched(hit, result.mode)}</p>
                 </li>
               ))}
             </ul>
@@ -279,5 +289,51 @@ function CourseSummary({ course }: { course: CourseCard }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** One line on why a result is here, in the words a student would use. */
+function whyMatched(hit: SearchResult["hits"][number], mode: SearchMode) {
+  const reasons: string[] = [];
+  const byMeaning = mode === "semantic" || (mode === "hybrid" && hit.sources?.semantic);
+  if (byMeaning && hit.similarity > 0) {
+    reasons.push(`close in meaning (${Math.round(hit.similarity * 100)}%)`);
+  }
+  if (mode === "keyword" || hit.sources?.keyword) reasons.push("uses your words");
+  if (hit.inSyllabus) {
+    reasons.push(`approved for unit ${hit.inSyllabus.unitNo}, ${hit.inSyllabus.unitTitle}`);
+  }
+  if (reasons.length === 0) return "";
+  const sentence = reasons.join("; ");
+  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.`;
+}
+
+function BookMatches({ books }: { books: SearchResult["books"] }) {
+  return (
+    <div className="grid gap-[var(--space-xs)]">
+      <h3 className="text-sm font-medium">Books on this topic</h3>
+      <ul className="flex flex-wrap gap-[var(--space-xs)]">
+        {books.map((book) => (
+          <li key={book.bookId}>
+            <Link
+              href={`/catalog/${book.bookId}`}
+              className="grid max-w-[18rem] gap-0.5 rounded-[var(--radius-card)] border border-rule px-[var(--space-sm)] py-[var(--space-xs)] text-sm hover:border-ink"
+            >
+              <span className="font-medium">{book.title}</span>
+              <span className="text-xs text-muted">
+                {book.authors.split(", ")[0]}
+                {book.latestYear ? `, ${book.latestYear}` : ""} /{" "}
+                {book.available > 0 ? `${book.available} on the shelf` : "all copies out"}
+              </span>
+              {book.prescribedFor.length > 0 ? (
+                <span className="text-xs text-ink-2">
+                  Prescribed for {book.prescribedFor.join(", ")}
+                </span>
+              ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
