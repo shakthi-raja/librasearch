@@ -12,6 +12,7 @@ import { type HybridHit, hybridSearch } from "./hybrid";
 import { keywordSearch } from "./keyword";
 import { readerContext } from "./reader";
 import { type SearchFilters, type SearchHit, semanticSearch } from "./semantic";
+import { recordSearch } from "./trending";
 
 export type { SearchFilters, SearchHit } from "./semantic";
 
@@ -66,6 +67,7 @@ export async function runSearch(
     understood,
     course,
   };
+  await recordSearch(understood.original, result.hits.length + result.books.length);
   await logSearch(pool("student"), {
     userId: reader?.userId ?? null,
     query,
