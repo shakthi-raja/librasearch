@@ -2,7 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
 import { log } from "@/server/log";
-import { redis } from "@/server/redis";
+import { connectedRedis } from "@/server/redis";
 
 const CACHE_KEY = "search:aliases:v1";
 const CACHE_SECONDS = 600;
@@ -25,22 +25,20 @@ export async function listAliases(): Promise<AliasRow[]> {
  * Redis for ten minutes; without Redis it comes straight from MySQL.
  */
 export async function aliasMap(): Promise<Map<string, string>> {
+  const client = await connectedRedis();
   try {
-    const cached = await redis().get(CACHE_KEY);
+    const cached = await client?.get(CACHE_KEY);
     if (cached) return new Map(JSON.parse(cached) as [string, string][]);
   } catch (error) {
     log.debug({ err: error }, "alias cache unavailable");
   }
   const entries = (await listAliases()).map((row): [string, string] => [row.alias, row.expansion]);
-  redis()
-    .set(CACHE_KEY, JSON.stringify(entries), "EX", CACHE_SECONDS)
-    .catch(() => undefined);
+  client?.set(CACHE_KEY, JSON.stringify(entries), "EX", CACHE_SECONDS).catch(() => undefined);
   return new Map(entries);
 }
 
 /** Called after a librarian changes an alias so the next search sees it. */
 export async function forgetAliases() {
-  await redis()
-    .del(CACHE_KEY)
-    .catch(() => undefined);
+  const client = await connectedRedis();
+  await client?.del(CACHE_KEY).catch(() => undefined);
 }

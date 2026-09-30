@@ -2,6 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
 import { qdrant } from "@/server/vector/qdrant";
+import { cached, catalogueVersion, digest } from "./cache";
 import { queryVector } from "./vectors";
 
 export type BookMatch = {
@@ -19,13 +20,21 @@ export type BookMatch = {
  * have no chapter list in the catalogue; this is how search still finds them.
  */
 export async function semanticBooks(query: string, limit = 10): Promise<BookMatch[]> {
-  const result = await qdrant().query("books", {
-    query: await queryVector(query),
-    limit,
-    score_threshold: 0.5,
-    with_payload: false,
+  const version = await catalogueVersion();
+  const key =
+    version === null
+      ? null
+      : `search:neighbours:${version}:books:${digest([query.trim().toLowerCase(), limit])}`;
+  const points = await cached(key, 3600, async () => {
+    const result = await qdrant().query("books", {
+      query: await queryVector(query),
+      limit,
+      score_threshold: 0.5,
+      with_payload: false,
+    });
+    return result.points.map((point) => ({ id: Number(point.id), score: point.score }));
   });
-  const similarity = new Map(result.points.map((point) => [Number(point.id), point.score]));
+  const similarity = new Map(points.map((point) => [point.id, point.score]));
   if (similarity.size === 0) return [];
 
   const [rows] = await pool("student").query<RowDataPacket[]>(
