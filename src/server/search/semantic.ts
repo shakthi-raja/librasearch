@@ -2,6 +2,7 @@ import "server-only";
 import type { Pool, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
 import { qdrant } from "@/server/vector/qdrant";
+import { cached, catalogueVersion, digest } from "./cache";
 import { queryVector } from "./vectors";
 
 export type SearchFilters = {
@@ -99,7 +100,8 @@ export function relevanceScore(similarity: number, available: number) {
 /**
  * Semantic chapter search. Qdrant proposes twenty neighbours above the floor;
  * MySQL supplies availability and the shelf, and the final order weights
- * similarity against whether a copy can be borrowed today.
+ * similarity against whether a copy can be borrowed today. Only the neighbour
+ * list is cached, never availability.
  */
 export async function semanticSearch(
   query: string,
@@ -107,21 +109,28 @@ export async function semanticSearch(
   limit = 10,
 ): Promise<SearchHit[]> {
   const db = pool("student");
-  const vector = await queryVector(query);
   const categoryIds = filters.categorySlug
     ? await categorySubtreeIds(db, filters.categorySlug)
     : undefined;
   const filter = buildFilter(categoryIds, filters);
 
-  const result = await qdrant().query("chapters", {
-    query: vector,
-    limit: 20,
-    score_threshold: 0.4,
-    with_payload: false,
-    ...(filter ? { filter } : {}),
+  const version = await catalogueVersion();
+  const key =
+    version === null
+      ? null
+      : `search:neighbours:${version}:chapters:${digest([query.trim().toLowerCase(), filter])}`;
+  const points = await cached(key, 3600, async () => {
+    const result = await qdrant().query("chapters", {
+      query: await queryVector(query),
+      limit: 20,
+      score_threshold: 0.4,
+      with_payload: false,
+      ...(filter ? { filter } : {}),
+    });
+    return result.points.map((point) => ({ id: Number(point.id), score: point.score }));
   });
 
-  const similarityById = new Map(result.points.map((point) => [Number(point.id), point.score]));
+  const similarityById = new Map(points.map((point) => [point.id, point.score]));
   const chapterIds = [...similarityById.keys()];
   if (chapterIds.length === 0) return [];
 
