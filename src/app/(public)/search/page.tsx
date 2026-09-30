@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SearchCombobox } from "@/components/search/search-combobox";
 import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import type { CourseCard } from "@/server/search/course";
@@ -10,6 +11,7 @@ import {
   type SearchMode,
   type SearchResult,
 } from "@/server/search/run";
+import { trendingSearches } from "@/server/search/trending";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -53,6 +55,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const result = query
     ? await runSearch(query, mode, filters, user ? { userId: user.userId, role: user.role } : null)
     : null;
+  const nothing = result !== null && result.hits.length === 0 && result.books.length === 0;
+  const trending = !result || nothing ? await trendingSearches(8) : [];
 
   return (
     <div className="grid gap-[var(--space-2xl)]">
@@ -70,15 +74,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           className="grid gap-[var(--space-sm)] border-y border-ink py-[var(--space-md)]"
         >
           <div className="flex flex-wrap gap-[var(--space-sm)]">
-            <label className="grid min-w-[16rem] flex-[2] gap-1 text-sm font-medium">
-              What are you looking for?
-              <input
+            <div className="grid min-w-[16rem] flex-[2] gap-1 text-sm font-medium">
+              <label htmlFor="search-q">What are you looking for?</label>
+              <SearchCombobox
+                id="search-q"
                 name="q"
                 defaultValue={query}
-                placeholder="normalisation, distributed consensus, indexing"
-                className="input"
+                placeholder="normalisation, a course code, or cn, dbms, daa"
               />
-            </label>
+            </div>
             <label className="grid gap-1 text-sm font-medium">
               Matching
               <select name="mode" defaultValue={mode} className="select">
@@ -186,10 +190,33 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
           {result.books.length > 0 ? <BookMatches books={result.books} /> : null}
 
-          {result.hits.length === 0 ? (
-            <p className="text-muted">
-              Nothing matched. Try a broader phrase, another subject, or drop the year limits.
+          {result.hits.length === 0 && result.books.length > 0 ? (
+            <p className="text-sm text-muted">
+              No single chapter matched; the books above cover the topic as a whole.
             </p>
+          ) : result.hits.length === 0 ? (
+            <div className="grid gap-[var(--space-sm)]">
+              <p className="text-ink-2">
+                Nothing in the catalogue matched{" "}
+                <span className="font-medium">{result.understood.original}</span>.
+              </p>
+              <ul className="list-disc pl-5 text-sm text-muted">
+                <li>Try the topic in other words, or a broader phrase.</li>
+                <li>Search a course code such as UE24CS351A to see its prescribed books.</li>
+                {Object.keys(filters).length > 0 ? (
+                  <li>
+                    <Link
+                      href={`/search?q=${encodeURIComponent(query)}&mode=${mode}`}
+                      className="underline underline-offset-4"
+                    >
+                      Search again without the filters
+                    </Link>
+                  </li>
+                ) : null}
+                <li>If the library should hold it, ask at the desk; requests reach procurement.</li>
+              </ul>
+              {trending.length > 0 ? <TrendingList trending={trending} /> : null}
+            </div>
           ) : (
             <ul className="ruled">
               {result.hits.map((hit) => (
@@ -234,10 +261,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           )}
         </section>
       ) : (
-        <p className="max-w-[54rem] text-muted">
-          Ask for a topic, a problem, or a phrase you remember. Results show the chapter and the
-          shelf its copies sit on.
-        </p>
+        <div className="grid max-w-[54rem] gap-[var(--space-lg)]">
+          <p className="text-muted">
+            Ask for a topic, a problem, or a phrase you remember. Results show the chapter and the
+            shelf its copies sit on.
+          </p>
+          {trending.length > 0 ? <TrendingList trending={trending} /> : null}
+        </div>
       )}
     </div>
   );
@@ -330,6 +360,26 @@ function BookMatches({ books }: { books: SearchResult["books"] }) {
                   Prescribed for {book.prescribedFor.join(", ")}
                 </span>
               ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TrendingList({ trending }: { trending: { query: string; count: number }[] }) {
+  return (
+    <div className="grid gap-[var(--space-xs)]">
+      <h2 className="text-sm font-medium">Searched most this week</h2>
+      <ul className="flex flex-wrap gap-[var(--space-xs)]">
+        {trending.map((item) => (
+          <li key={item.query}>
+            <Link
+              href={`/search?q=${encodeURIComponent(item.query)}`}
+              className="chip hover:bg-paper-3"
+            >
+              {item.query}
             </Link>
           </li>
         ))}
