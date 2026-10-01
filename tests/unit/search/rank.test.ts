@@ -10,6 +10,7 @@ const hit = (chapterId: number): SearchHit => ({
   chapterNo: chapterId,
   chapterTitle: `Chapter ${chapterId}`,
   summary: "summary",
+  isbn13: "9780078022159",
   editionNo: 1,
   pubYear: 2024,
   categoryPath: "Databases",
