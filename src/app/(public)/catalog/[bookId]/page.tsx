@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Availability } from "@/components/catalog/availability";
+import { BookCover } from "@/components/catalog/book-cover";
 import { PlaceHoldForm } from "@/components/holds/place-hold";
 import { type MapPin, StackMap } from "@/components/stack-map/stack-map";
 import { formatDateTime, formatOrdinal } from "@/lib/format";
@@ -85,9 +86,14 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
           <Link href={`/catalog?category=${book.categorySlug}`} className="text-sm text-muted">
             {book.categoryPath}
           </Link>
-          <h1 className="max-w-[24ch] text-[length:var(--text-4xl)]">{book.title}</h1>
-          {book.subtitle ? <p className="text-lg text-ink-2">{book.subtitle}</p> : null}
-          <p className="text-ink-2">{book.authors}</p>
+          <div className="flex items-start gap-[var(--space-md)]">
+            <BookCover src={book.coverUrl} title={book.title} size="lg" />
+            <div className="grid gap-[var(--space-xs)]">
+              <h1 className="max-w-[24ch] text-[length:var(--text-4xl)]">{book.title}</h1>
+              {book.subtitle ? <p className="text-lg text-ink-2">{book.subtitle}</p> : null}
+              <p className="text-ink-2">{book.authors}</p>
+            </div>
+          </div>
           <p className="max-w-[65ch] text-muted">{book.description}</p>
           <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
             <Availability available={borrowable} total={copies.length} reference={reference} />
@@ -107,6 +113,31 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
           </div>
         </figure>
       </header>
+
+      {book.openResources.length > 0 ? (
+        <section
+          aria-labelledby="online-heading"
+          className="grid gap-[var(--space-xs)] border-l-2 border-ink pl-[var(--space-md)]"
+        >
+          <h2 id="online-heading" className="text-lg">
+            Read it online
+          </h2>
+          {book.openResources.map((resource) => (
+            <p key={resource.url} className="text-sm text-ink-2">
+              <a
+                href={resource.url}
+                className="font-medium underline underline-offset-4"
+                rel="noopener"
+              >
+                {resource.kind === "CHAPTERS" ? "Free chapters" : "The full text"}
+              </a>{" "}
+              from {resource.provider}
+              {resource.licence ? `, under ${resource.licence}` : ""}. The printed copies below are
+              still here to borrow.
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       <section
         aria-labelledby="borrowing-heading"

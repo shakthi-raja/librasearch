@@ -6,10 +6,14 @@ const globalForRedis = globalThis as unknown as { librasearchRedis?: Redis };
 
 /**
  * Shared Redis client. Redis is never a source of truth: callers must keep
- * working when it is down, so commands fail fast instead of queueing.
+ * working when it is down, so commands fail fast instead of queueing. Keys are
+ * prefixed with the database name.
  */
 export function redis(): Redis {
   globalForRedis.librasearchRedis ??= new Redis(env().REDIS_URL, {
+    // one Redis can serve several databases (development and the test
+    // schema); every key belongs to the database it describes
+    keyPrefix: `${env().DB_NAME}:`,
     lazyConnect: false,
     enableOfflineQueue: false,
     maxRetriesPerRequest: 1,
@@ -34,4 +38,15 @@ export function redisReady(timeoutMs = 2_000): Promise<boolean> {
     };
     client.once("ready", onReady);
   });
+}
+
+/**
+ * The client once it is connected, or null. A new process waits briefly for
+ * the first connection instead of failing its first commands; after that a
+ * Redis outage costs nothing but the cache.
+ */
+export async function connectedRedis(timeoutMs = 300): Promise<Redis | null> {
+  const client = redis();
+  if (client.status === "ready") return client;
+  return (await redisReady(timeoutMs)) ? client : null;
 }

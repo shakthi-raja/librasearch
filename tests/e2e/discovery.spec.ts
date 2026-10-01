@@ -18,4 +18,34 @@ test.describe("discovery", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page).toHaveURL(/\/catalog\/\d+/);
   });
+
+  test("reads cn as computer networks and says so", async ({ page }) => {
+    await page.goto("/search?q=cn");
+    await expect(page.getByRole("status").filter({ hasText: "computer networks" })).toBeVisible();
+    await expect(
+      page
+        .locator('section[aria-labelledby="results-heading"]')
+        .getByText(/network/i)
+        .first(),
+    ).toBeVisible();
+  });
+
+  test("turns a course code into the course and its prescribed books", async ({ page }) => {
+    await page.goto("/search?q=UE24CS351A");
+    const course = page.locator('section[aria-labelledby="course-heading"]');
+    await expect(
+      course.getByRole("heading", { name: "Database Management Systems" }),
+    ).toBeVisible();
+    await expect(course.getByRole("link", { name: "Database System Concepts" })).toBeVisible();
+  });
+
+  test("offers suggestions while typing and opens a course from them", async ({ page }) => {
+    await page.goto("/search");
+    const box = page.getByRole("combobox", { name: "What are you looking for?" });
+    await box.fill("datab");
+    const option = page.getByRole("option", { name: /Database Management Systems/ }).first();
+    await expect(option).toBeVisible();
+    await box.press("ArrowDown");
+    await expect(box).toHaveAttribute("aria-activedescendant", /.+/);
+  });
 });

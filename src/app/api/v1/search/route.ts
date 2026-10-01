@@ -29,7 +29,7 @@ export const GET = route(async (request) => {
       ...(yearFrom !== undefined ? { yearFrom } : {}),
       ...(yearTo !== undefined ? { yearTo } : {}),
     },
-    user?.userId ?? null,
+    user ? { userId: user.userId, role: user.role } : null,
   );
 
   return NextResponse.json(result);
