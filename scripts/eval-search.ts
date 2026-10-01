@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 
-type Case = { query: string; expected: number[] };
-type Result = { hits: { chapterId: number }[] };
+/** Expected chapters are "isbn13#chapter", stable across reseeds. */
+type Case = { query: string; expected: string[] };
+type Result = { hits: { isbn13: string; chapterNo: number }[] };
 
 const base = process.env.EVAL_BASE_URL ?? "http://localhost:3000";
 const cases = JSON.parse(await readFile("db/eval/queries.json", "utf8")) as Case[];
@@ -19,7 +20,7 @@ for (const testCase of cases) {
     continue;
   }
   const data = (await response.json()) as Result;
-  const ids = data.hits.map((hit) => hit.chapterId);
+  const ids = data.hits.map((hit) => `${hit.isbn13}#${hit.chapterNo}`);
   const found = testCase.expected.filter((id) => ids.includes(id));
   const caseRecall = found.length / testCase.expected.length;
   const rank = ids.findIndex((id) => testCase.expected.includes(id));

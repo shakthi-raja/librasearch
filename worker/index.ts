@@ -3,6 +3,7 @@ import { ensureCollections } from "@/server/vector/qdrant";
 import { closeWorkerDb, workerDb } from "./db";
 import { runOnce } from "./jobs";
 import { log } from "./log";
+import { bumpCatalogueVersion, closeWorkerRedis } from "./redis";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 let stopping = false;
@@ -23,6 +24,7 @@ async function main() {
     try {
       const processed = await runOnce(db, config.WORKER_BATCH_SIZE);
       if (processed === 0) await sleep(config.WORKER_POLL_MS);
+      else await bumpCatalogueVersion();
     } catch (error) {
       log.error({ err: error }, "poll failed");
       await sleep(config.WORKER_POLL_MS);
@@ -30,6 +32,7 @@ async function main() {
   }
 
   await closeWorkerDb();
+  await closeWorkerRedis();
   log.info("worker stopped");
 }
 

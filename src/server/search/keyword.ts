@@ -51,7 +51,7 @@ export async function keywordSearch(
 
   const [rows] = await db.query<RowDataPacket[]>(
     `SELECT c.chapter_id, c.chapter_no, c.title AS chapter_title, c.summary,
-            e.edition_no, e.pub_year, b.book_id, b.title AS book_title, b.category_id,
+            e.edition_no, e.isbn13, e.pub_year, b.book_id, b.title AS book_title, b.category_id,
             (SELECT GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ')
                FROM book_authors ba JOIN authors a ON a.author_id = ba.author_id
               WHERE ba.book_id = b.book_id) AS authors,
@@ -93,6 +93,7 @@ export async function keywordSearch(
       chapterTitle: row.chapter_title,
       summary: row.summary,
       editionNo: Number(row.edition_no),
+      isbn13: String(row.isbn13),
       pubYear: Number(row.pub_year),
       categoryPath: row.category_path ?? "",
       available,

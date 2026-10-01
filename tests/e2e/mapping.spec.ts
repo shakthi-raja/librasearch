@@ -8,7 +8,7 @@ test.describe("syllabus mapping", () => {
     await page.goto("/faculty/units");
     await expect(page.getByRole("heading", { name: "Your units" })).toBeVisible();
 
-    await page.locator('a[href="/faculty/units/1"]').first().click();
+    await page.locator('a[href^="/faculty/units/"]').first().click();
 
     await expect(page.getByRole("heading", { level: 1, name: /unit 1/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Suggested chapters" })).toBeVisible();

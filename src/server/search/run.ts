@@ -1,36 +1,75 @@
 import "server-only";
+import { EMPTY_CONTEXT, type Personal, personalise, rankBooks } from "@/lib/search/personalise";
+import { expandQuery, type UnderstoodQuery } from "@/lib/search/query";
 import { pool } from "@/server/db/pool";
 import { log } from "@/server/log";
+import type { RoleName } from "@/server/repositories/auth";
 import { logSearch } from "@/server/repositories/search-log";
+import { aliasMap } from "./aliases";
+import { type BookMatch, semanticBooks } from "./books";
+import { type CourseCard, courseByCode } from "./course";
 import { type HybridHit, hybridSearch } from "./hybrid";
 import { keywordSearch } from "./keyword";
+import { readerContext } from "./reader";
 import { type SearchFilters, type SearchHit, semanticSearch } from "./semantic";
+import { recordSearch } from "./trending";
 
 export type { SearchFilters, SearchHit } from "./semantic";
 
 export type SearchMode = "hybrid" | "semantic" | "keyword";
 
-export type SearchResult = {
+type Ranked = {
   mode: SearchMode;
   semanticDown: boolean;
   hits: (SearchHit & { sources?: HybridHit["sources"] })[];
 };
 
+export type SearchResult = Omit<Ranked, "hits"> & {
+  hits: (Ranked["hits"][number] & Personal)[];
+  books: (BookMatch & { prescribedFor: string[] })[];
+  understood: UnderstoodQuery;
+  course: CourseCard | null;
+};
+
+export type Reader = { userId: number; role: RoleName } | null;
+
 /**
- * Runs the chosen mode and records it in search_log, signed in or not, so
- * zero-result queries can feed acquisition planning. Logging never fails the
- * search.
+ * Expands abbreviations, runs the chosen mode and records the search in
+ * search_log, signed in or not, so zero-result queries can feed acquisition
+ * planning. Logging never fails the search.
  */
 export async function runSearch(
   query: string,
   mode: SearchMode,
   filters: SearchFilters = {},
-  userId: number | null = null,
+  reader: Reader = null,
 ): Promise<SearchResult> {
   const started = performance.now();
-  const result = await search(query, mode, filters);
+  const understood = expandQuery(query, await aliasMap().catch(() => new Map<string, string>()));
+  // a course code searches for what the course is about
+  const course = understood.courseCode ? await courseByCode(understood.courseCode) : null;
+  if (course) understood.text = course.title;
+  const [ranked, context, books] = await Promise.all([
+    search(understood.text, mode, filters),
+    readerContext(reader).catch(() => EMPTY_CONTEXT),
+    mode === "keyword"
+      ? Promise.resolve([])
+      : semanticBooks(understood.text).catch((): BookMatch[] => []),
+  ]);
+  const result: SearchResult = {
+    ...ranked,
+    hits: personalise(ranked.hits, context),
+    books: rankBooks(
+      books,
+      ranked.hits.map((hit) => hit.categoryPath),
+      context,
+    ),
+    understood,
+    course,
+  };
+  await recordSearch(understood.original, result.hits.length + result.books.length);
   await logSearch(pool("student"), {
-    userId,
+    userId: reader?.userId ?? null,
     query,
     mode: result.semanticDown ? "KEYWORD" : (mode.toUpperCase() as Uppercase<SearchMode>),
     filters,
@@ -42,11 +81,7 @@ export async function runSearch(
 }
 
 /** A semantic failure falls back to keywords. */
-async function search(
-  query: string,
-  mode: SearchMode,
-  filters: SearchFilters,
-): Promise<SearchResult> {
+async function search(query: string, mode: SearchMode, filters: SearchFilters): Promise<Ranked> {
   if (mode === "keyword") {
     return { mode, semanticDown: false, hits: await keywordSearch(query, filters) };
   }
