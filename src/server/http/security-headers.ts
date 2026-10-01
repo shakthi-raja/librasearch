@@ -23,7 +23,8 @@ export function contentSecurityPolicy({ nonce, production }: SecurityOptions): s
     `script-src ${script.join(" ")}`,
     // style attributes (chart widths, the stack map) cannot carry a nonce
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob:`,
+    // book covers come from Open Library
+    `img-src 'self' data: blob: https://covers.openlibrary.org https://archive.org https://*.archive.org`,
     `font-src 'self'`,
     `connect-src 'self'`,
     `object-src 'none'`,

@@ -21,6 +21,17 @@ export function estimatePages(edition: EditionSeed, chapterNo: number) {
   return { start, end: Math.min(end, edition.pages) };
 }
 
+/**
+ * Open Library's cover for the latest edition. default=false makes a missing
+ * cover a 404, which the page turns into a drawn spine instead of a blank.
+ */
+export function coverUrl(book: BookSeed) {
+  const latest = [...book.editions].sort((a, b) => b.editionNo - a.editionNo)[0];
+  return latest
+    ? `https://covers.openlibrary.org/b/isbn/${latest.isbn13}-M.jpg?default=false`
+    : null;
+}
+
 async function idBy(db: Connection, sql: string, params: unknown[]) {
   const [rows] = await db.query<RowDataPacket[]>(sql, params);
   const id = rows[0]?.id;
@@ -74,15 +85,16 @@ async function seedBook(db: Connection, book: BookSeed) {
     `SELECT book_id AS id FROM editions WHERE isbn13 IN (${isbns.map(() => "?").join(", ")}) LIMIT 1`,
     isbns,
   );
+  const cover = coverUrl(book);
   if (bookId) {
     await db.query(
-      "UPDATE books SET category_id = ?, title = ?, subtitle = ?, description = ? WHERE book_id = ?",
-      [categoryId, book.title, book.subtitle ?? null, book.description, bookId],
+      "UPDATE books SET category_id = ?, title = ?, subtitle = ?, description = ?, cover_url = ? WHERE book_id = ?",
+      [categoryId, book.title, book.subtitle ?? null, book.description, cover, bookId],
     );
   } else {
     const [r] = await db.query<ResultSetHeader>(
-      "INSERT INTO books (category_id, title, subtitle, description) VALUES (?, ?, ?, ?)",
-      [categoryId, book.title, book.subtitle ?? null, book.description],
+      "INSERT INTO books (category_id, title, subtitle, description, cover_url) VALUES (?, ?, ?, ?, ?)",
+      [categoryId, book.title, book.subtitle ?? null, book.description, cover],
     );
     bookId = r.insertId;
   }

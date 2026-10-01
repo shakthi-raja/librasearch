@@ -3,6 +3,7 @@ import { hash } from "@node-rs/argon2";
 import type { Connection } from "mysql2/promise";
 import { seedCatalogue } from "../db/seed/catalogue";
 import { generate } from "../db/seed/generate";
+import { OPEN_RESOURCES } from "../db/seed/open-resources";
 import { SEARCH_ALIASES } from "../db/seed/search-aliases";
 import { adminConnection, adminEnv } from "./lib/admin-db";
 
@@ -123,6 +124,16 @@ async function main() {
       );
     }
     out(`aliases      ${SEARCH_ALIASES.length}`);
+
+    for (const resource of OPEN_RESOURCES) {
+      await db.query(
+        `INSERT INTO open_resources (book_id, url, kind, provider, licence)
+         SELECT book_id, ?, ?, ?, ? FROM editions WHERE isbn13 = ?
+         ON DUPLICATE KEY UPDATE kind = VALUES(kind), provider = VALUES(provider), licence = VALUES(licence)`,
+        [resource.url, resource.kind, resource.provider, resource.licence ?? null, resource.isbn13],
+      );
+    }
+    out(`open shelf   ${OPEN_RESOURCES.length}`);
   } finally {
     await db.end();
   }
