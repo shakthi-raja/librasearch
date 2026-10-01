@@ -25,6 +25,7 @@ describe("contentSecurityPolicy", () => {
     expect(csp.get("object-src")).toEqual(["'none'"]);
     expect(csp.get("frame-ancestors")).toEqual(["'none'"]);
     expect(csp.get("form-action")).toEqual(["'self'"]);
+    expect(csp.get("img-src")).toContain("https://covers.openlibrary.org");
   });
 
   it("adds unsafe-eval only outside production", () => {
