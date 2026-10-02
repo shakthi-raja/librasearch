@@ -399,6 +399,50 @@
   }
 
   /* the slip prints as a sheet of paper, whatever the reader's theme */
+  /* copy labels: three across on screen, 21 to an A4 sheet in print */
+  .label-sheet {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .copy-label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border: var(--rule-hair) solid var(--color-rule-strong);
+    border-radius: var(--radius-sheet);
+    background: var(--color-paper-2);
+    break-inside: avoid;
+  }
+
+  .copy-label-qr {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+
+  .copy-label-title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  .copy-label-meta {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+  }
+
+  .copy-label-barcode {
+    font-family: var(--font-figure);
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+  }
+
   @media print {
     @page {
       margin: 14mm;
@@ -435,6 +479,25 @@
       width: 100%;
       border-radius: 0;
       box-shadow: none;
+    }
+
+    .label-sheet {
+      grid-template-columns: repeat(3, 63.5mm);
+      grid-auto-rows: 38.1mm;
+      gap: 0 2.5mm;
+      padding: 15.15mm 0 0 7.2mm;
+    }
+
+    .copy-label {
+      height: 38.1mm;
+      padding: 2.5mm;
+      border: none;
+      background: #ffffff;
+    }
+
+    .copy-label-qr {
+      width: 30mm;
+      height: 30mm;
     }
 
     .print-area .entry-head {
