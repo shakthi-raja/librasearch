@@ -1,5 +1,9 @@
 import type { Connection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { BOOKS, type BookSeed, CATEGORIES, type EditionSeed, PUBLISHERS } from "./catalogue-data";
+import { SYLLABUS_BOOKS, SYLLABUS_CATEGORIES, SYLLABUS_PUBLISHERS } from "./syllabus-books";
+import { ELECTIVE_BOOKS } from "./syllabus-electives";
+
+const ALL_BOOKS = [...BOOKS, ...SYLLABUS_BOOKS, ...ELECTIVE_BOOKS];
 
 const slugify = (value: string) =>
   value
@@ -17,6 +21,17 @@ export function estimatePages(edition: EditionSeed, chapterNo: number) {
   return { start, end: Math.min(end, edition.pages) };
 }
 
+/**
+ * Open Library's cover for the latest edition. default=false makes a missing
+ * cover a 404, which the page turns into a drawn spine instead of a blank.
+ */
+export function coverUrl(book: BookSeed) {
+  const latest = [...book.editions].sort((a, b) => b.editionNo - a.editionNo)[0];
+  return latest
+    ? `https://covers.openlibrary.org/b/isbn/${latest.isbn13}-M.jpg?default=false`
+    : null;
+}
+
 async function idBy(db: Connection, sql: string, params: unknown[]) {
   const [rows] = await db.query<RowDataPacket[]>(sql, params);
   const id = rows[0]?.id;
@@ -24,7 +39,7 @@ async function idBy(db: Connection, sql: string, params: unknown[]) {
 }
 
 async function seedPublishers(db: Connection) {
-  for (const p of PUBLISHERS) {
+  for (const p of [...PUBLISHERS, ...SYLLABUS_PUBLISHERS]) {
     await db.query(
       `INSERT INTO publishers (name, city, website) VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE city = VALUES(city), website = VALUES(website)`,
@@ -34,7 +49,7 @@ async function seedPublishers(db: Connection) {
 }
 
 async function seedCategories(db: Connection) {
-  for (const c of CATEGORIES) {
+  for (const c of [...CATEGORIES, ...SYLLABUS_CATEGORIES]) {
     const parentId = c.parent
       ? await idBy(db, "SELECT category_id AS id FROM categories WHERE slug = ?", [c.parent])
       : null;
@@ -70,15 +85,16 @@ async function seedBook(db: Connection, book: BookSeed) {
     `SELECT book_id AS id FROM editions WHERE isbn13 IN (${isbns.map(() => "?").join(", ")}) LIMIT 1`,
     isbns,
   );
+  const cover = coverUrl(book);
   if (bookId) {
     await db.query(
-      "UPDATE books SET category_id = ?, title = ?, subtitle = ?, description = ? WHERE book_id = ?",
-      [categoryId, book.title, book.subtitle ?? null, book.description, bookId],
+      "UPDATE books SET category_id = ?, title = ?, subtitle = ?, description = ?, cover_url = ? WHERE book_id = ?",
+      [categoryId, book.title, book.subtitle ?? null, book.description, cover, bookId],
     );
   } else {
     const [r] = await db.query<ResultSetHeader>(
-      "INSERT INTO books (category_id, title, subtitle, description) VALUES (?, ?, ?, ?)",
-      [categoryId, book.title, book.subtitle ?? null, book.description],
+      "INSERT INTO books (category_id, title, subtitle, description, cover_url) VALUES (?, ?, ?, ?, ?)",
+      [categoryId, book.title, book.subtitle ?? null, book.description, cover],
     );
     bookId = r.insertId;
   }
@@ -149,10 +165,13 @@ export type CatalogueCounts = { books: number; editions: number; chapters: numbe
 export async function seedCatalogue(db: Connection): Promise<CatalogueCounts> {
   await seedPublishers(db);
   await seedCategories(db);
-  for (const book of BOOKS) await seedBook(db, book);
+  for (const book of ALL_BOOKS) await seedBook(db, book);
   return {
-    books: BOOKS.length,
-    editions: BOOKS.reduce((n, b) => n + b.editions.length, 0),
-    chapters: BOOKS.reduce((n, b) => n + b.editions.reduce((m, e) => m + e.chapters.length, 0), 0),
+    books: ALL_BOOKS.length,
+    editions: ALL_BOOKS.reduce((n, b) => n + b.editions.length, 0),
+    chapters: ALL_BOOKS.reduce(
+      (n, b) => n + b.editions.reduce((m, e) => m + e.chapters.length, 0),
+      0,
+    ),
   };
 }

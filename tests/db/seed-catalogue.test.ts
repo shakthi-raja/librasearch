@@ -1,9 +1,14 @@
 import type { Connection, RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedCatalogue } from "../../db/seed/catalogue";
-import { BOOKS } from "../../db/seed/catalogue-data";
+import { BOOKS as CURATED } from "../../db/seed/catalogue-data";
+import { SYLLABUS_BOOKS } from "../../db/seed/syllabus-books";
+import { ELECTIVE_BOOKS } from "../../db/seed/syllabus-electives";
 import { rackCentre } from "../../src/components/stack-map/layout";
+import { keywordSearch } from "../../src/server/search/keyword";
 import { adminConnection } from "../support/db";
+
+const BOOKS = [...CURATED, ...SYLLABUS_BOOKS, ...ELECTIVE_BOOKS];
 
 let db: Connection;
 
@@ -42,17 +47,27 @@ describe("curated catalogue", () => {
     expect(rows[0]).toEqual({ edition_no: 7, previous_no: 6 });
   });
 
+  it("holds valid, distinct ISBN-13s across the curated and syllabus lists", () => {
+    const isbns = BOOKS.flatMap((b) => b.editions.map((e) => e.isbn13));
+    expect(new Set(isbns).size).toBe(isbns.length);
+    for (const isbn of isbns) {
+      const sum = [...isbn.slice(0, 12)].reduce(
+        (acc, d, i) => acc + Number(d) * (i % 2 === 0 ? 1 : 3),
+        0,
+      );
+      expect((10 - (sum % 10)) % 10, isbn).toBe(Number(isbn[12]));
+    }
+  });
+
   it("shelves every book on a rack that exists on the stack map", () => {
     for (const book of BOOKS)
       expect(rackCentre(book.rack), `${book.title} -> ${book.rack}`).toBeDefined();
   });
 
   it("gives the normalisation chapters the best keyword match for normal forms", async () => {
-    const [rows] = await db.query<RowDataPacket[]>(
-      `SELECT title FROM chapters
-        ORDER BY MATCH (title, summary) AGAINST ('normal forms decomposition') DESC
-        LIMIT 3`,
-    );
-    for (const row of rows) expect(String(row.title)).toMatch(/normal|design|dependenc/i);
+    const hits = await keywordSearch("normal forms decomposition");
+    expect(hits.length).toBeGreaterThan(0);
+    for (const hit of hits.slice(0, 3))
+      expect(hit.chapterTitle).toMatch(/normal|design|dependenc|refinement/i);
   });
 });

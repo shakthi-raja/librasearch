@@ -1,8 +1,9 @@
 import "server-only";
 import type { Pool, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
-import { embedQuery } from "@/server/vector/embedding";
 import { qdrant } from "@/server/vector/qdrant";
+import { cached, catalogueVersion, digest } from "./cache";
+import { queryVector } from "./vectors";
 
 export type SearchFilters = {
   categorySlug?: string;
@@ -20,6 +21,7 @@ export type SearchHit = {
   chapterTitle: string;
   summary: string;
   editionNo: number;
+  isbn13: string;
   pubYear: number;
   categoryPath: string;
   available: number;
@@ -67,7 +69,7 @@ function buildFilter(categoryIds: number[] | undefined, filters: SearchFilters) 
 async function hitsFor(db: Pool, chapterIds: number[]) {
   const [rows] = await db.query<RowDataPacket[]>(
     `SELECT c.chapter_id, c.chapter_no, c.title AS chapter_title, c.summary,
-            e.edition_no, e.pub_year, b.book_id, b.title AS book_title, b.category_id,
+            e.edition_no, e.isbn13, e.pub_year, b.book_id, b.title AS book_title, b.category_id,
             (SELECT GROUP_CONCAT(a.full_name ORDER BY ba.author_order SEPARATOR ', ')
                FROM book_authors ba JOIN authors a ON a.author_id = ba.author_id
               WHERE ba.book_id = b.book_id) AS authors,
@@ -99,7 +101,8 @@ export function relevanceScore(similarity: number, available: number) {
 /**
  * Semantic chapter search. Qdrant proposes twenty neighbours above the floor;
  * MySQL supplies availability and the shelf, and the final order weights
- * similarity against whether a copy can be borrowed today.
+ * similarity against whether a copy can be borrowed today. Only the neighbour
+ * list is cached, never availability.
  */
 export async function semanticSearch(
   query: string,
@@ -107,21 +110,28 @@ export async function semanticSearch(
   limit = 10,
 ): Promise<SearchHit[]> {
   const db = pool("student");
-  const vector = await embedQuery(query);
   const categoryIds = filters.categorySlug
     ? await categorySubtreeIds(db, filters.categorySlug)
     : undefined;
   const filter = buildFilter(categoryIds, filters);
 
-  const result = await qdrant().query("chapters", {
-    query: vector,
-    limit: 20,
-    score_threshold: 0.4,
-    with_payload: false,
-    ...(filter ? { filter } : {}),
+  const version = await catalogueVersion();
+  const key =
+    version === null
+      ? null
+      : `search:neighbours:${version}:chapters:${digest([query.trim().toLowerCase(), filter])}`;
+  const points = await cached(key, 3600, async () => {
+    const result = await qdrant().query("chapters", {
+      query: await queryVector(query),
+      limit: 20,
+      score_threshold: 0.4,
+      with_payload: false,
+      ...(filter ? { filter } : {}),
+    });
+    return result.points.map((point) => ({ id: Number(point.id), score: point.score }));
   });
 
-  const similarityById = new Map(result.points.map((point) => [Number(point.id), point.score]));
+  const similarityById = new Map(points.map((point) => [point.id, point.score]));
   const chapterIds = [...similarityById.keys()];
   if (chapterIds.length === 0) return [];
 
@@ -139,6 +149,7 @@ export async function semanticSearch(
         chapterTitle: row.chapter_title,
         summary: row.summary,
         editionNo: Number(row.edition_no),
+        isbn13: String(row.isbn13),
         pubYear: Number(row.pub_year),
         categoryPath: row.category_path ?? "",
         available,

@@ -43,7 +43,7 @@ describe("runSearch", () => {
   it("records who searched when someone is signed in", async () => {
     const student = await insertUser(db, "STUDENT");
     const query = nonsense();
-    await runSearch(query, "keyword", {}, student);
+    await runSearch(query, "keyword", {}, { userId: student, role: "STUDENT" });
 
     const rows = await logged(query);
     expect(rows[0]?.user_id).toBe(student);

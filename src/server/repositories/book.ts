@@ -17,6 +17,8 @@ export type BookDetail = {
   authors: string;
   categoryPath: string;
   categorySlug: string;
+  coverUrl: string | null;
+  openResources: { url: string; kind: string; provider: string; licence: string | null }[];
   editions: {
     editionId: number;
     editionNo: number;
@@ -45,14 +47,15 @@ export type BookDetail = {
 /** A book with every edition, its chapters and copies, newest edition first. */
 export async function findBook(db: Pool, bookId: number): Promise<BookDetail | null> {
   const [books] = await db.query<RowDataPacket[]>(
-    `SELECT p.book_id, p.title, p.subtitle, p.description, p.authors, p.category_path, p.category_slug
+    `SELECT p.book_id, p.title, p.subtitle, p.description, p.authors, p.category_path, p.category_slug,
+            p.cover_url
        FROM v_catalog_public p WHERE p.book_id = ?`,
     [bookId],
   );
   const book = books[0];
   if (!book) return null;
 
-  const [editions, chapters, copies] = await Promise.all([
+  const [editions, chapters, copies, open] = await Promise.all([
     db.query<RowDataPacket[]>(
       `SELECT e.edition_id, e.edition_no, e.isbn13, e.pub_year, e.page_count, pb.name AS publisher
          FROM editions e LEFT JOIN publishers pb ON pb.publisher_id = e.publisher_id
@@ -71,6 +74,10 @@ export async function findBook(db: Pool, bookId: number): Promise<BookDetail | n
         WHERE e.book_id = ? AND c.status <> 'WITHDRAWN' ORDER BY c.copy_id`,
       [bookId],
     ),
+    db.query<RowDataPacket[]>(
+      "SELECT url, kind, provider, licence FROM v_open_shelf WHERE book_id = ? ORDER BY resource_id",
+      [bookId],
+    ),
   ]);
 
   return {
@@ -81,6 +88,13 @@ export async function findBook(db: Pool, bookId: number): Promise<BookDetail | n
     authors: String(book.authors ?? ""),
     categoryPath: String(book.category_path),
     categorySlug: String(book.category_slug),
+    coverUrl: book.cover_url === null ? null : String(book.cover_url),
+    openResources: open[0].map((r) => ({
+      url: String(r.url),
+      kind: String(r.kind),
+      provider: String(r.provider),
+      licence: r.licence === null ? null : String(r.licence),
+    })),
     editions: editions[0].map((e) => ({
       editionId: Number(e.edition_id),
       editionNo: Number(e.edition_no),
