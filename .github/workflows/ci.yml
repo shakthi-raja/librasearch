@@ -31,6 +31,7 @@ env:
   DB_FACULTY_PASSWORD: ci-faculty-password-01
   DB_LIBRARIAN_PASSWORD: ci-librarian-password-1
   REDIS_URL: redis://:ci-redis-password-01@127.0.0.1:6380/0
+  CARD_SECRET: ci-card-secret-0000000000000000000001
 
 jobs:
   check:
