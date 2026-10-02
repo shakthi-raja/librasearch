@@ -4,6 +4,7 @@ import { dropCollections, ensureCollections, upsertPoint } from "@/server/vector
 import { closeWorkerDb, workerDb } from "./db";
 import { documentFor } from "./documents";
 import { log } from "./log";
+import { bumpCatalogueVersion, closeWorkerRedis } from "./redis";
 
 /** Drops the collections and replays every active row from MySQL. */
 export async function rebuild() {
@@ -41,13 +42,14 @@ export async function rebuild() {
     points += 1;
   }
 
+  await bumpCatalogueVersion();
   log.info({ points }, "rebuild complete");
   return points;
 }
 
 if (process.argv[1]?.endsWith("rebuild.ts")) {
   rebuild()
-    .then(() => closeWorkerDb())
+    .then(() => Promise.all([closeWorkerDb(), closeWorkerRedis()]))
     .catch((error) => {
       log.error({ err: error }, "rebuild failed");
       process.exitCode = 1;

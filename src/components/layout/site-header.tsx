@@ -16,6 +16,9 @@ export async function SiteHeader() {
           <Link href="/catalog" className="nav-link">
             Catalogue
           </Link>
+          <Link href="/open" className="nav-link max-sm:hidden">
+            Open shelf
+          </Link>
           <ModeToggle />
           {user ? (
             <Link href="/account" className="btn">

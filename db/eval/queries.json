@@ -1,27 +1,139 @@
 [
-  { "query": "normalisation and functional dependencies", "expected": [4, 13, 20, 26, 27, 39] },
-  { "query": "relational algebra and the relational model", "expected": [1, 8, 23, 25, 33, 34] },
-  { "query": "transaction isolation and serializability", "expected": [6, 17, 18, 29, 30, 38, 45] },
-  { "query": "b trees and hash indexes", "expected": [5, 14, 28, 36, 37, 52, 56, 64] },
-  { "query": "query optimisation and join ordering", "expected": [15, 16] },
-  { "query": "recovery and write ahead logging", "expected": [19] },
-  { "query": "distributed consensus and replication", "expected": [43, 46] },
-  { "query": "stream processing and unbounded data", "expected": [47] },
-  { "query": "er modelling and weak entities", "expected": [3, 12, 22, 32] },
-  { "query": "sql joins and aggregation", "expected": [2, 9, 10, 11, 24, 35] },
-  { "query": "concurrency control with two phase locking", "expected": [6, 18, 30] },
-  { "query": "storage layout and buffer management", "expected": [36, 42] },
-  { "query": "document databases and eventual consistency", "expected": [41] },
-  { "query": "information retrieval and inverted indexes", "expected": [162, 163, 164] },
-  { "query": "vector space model and term weighting", "expected": [164] },
-  { "query": "process scheduling and deadlock", "expected": [79, 83, 92] },
-  { "query": "tcp congestion control", "expected": [101, 109] },
-  { "query": "public key cryptography and rsa", "expected": [174] },
-  { "query": "dynamic programming and greedy algorithms", "expected": [54, 55, 62, 63, 69, 71] },
-  { "query": "neural networks and backpropagation", "expected": [155, 158, 160, 161] },
-  { "query": "relational schema design", "expected": [4, 13, 27, 39] },
-  { "query": "multiversion concurrency control", "expected": [45] },
-  { "query": "database recovery after a crash", "expected": [19] },
-  { "query": "sql queries with constraints and triggers", "expected": [35] },
-  { "query": "requirements engineering and use cases", "expected": [133] }
+  {
+    "query": "normalisation and functional dependencies",
+    "expected": [
+      "9780073523323#8",
+      "9780078022159#7",
+      "9780136086208#15",
+      "9780133970777#14",
+      "9780133970777#15",
+      "9780072465631#19"
+    ]
+  },
+  {
+    "query": "relational algebra and the relational model",
+    "expected": [
+      "9780073523323#2",
+      "9780078022159#2",
+      "9780133970777#5",
+      "9780133970777#8",
+      "9780072465631#3",
+      "9780072465631#4"
+    ]
+  },
+  {
+    "query": "transaction isolation and serializability",
+    "expected": [
+      "9780073523323#15",
+      "9780078022159#17",
+      "9780078022159#18",
+      "9780133970777#20",
+      "9780133970777#21",
+      "9780072465631#16",
+      "9781449373320#7"
+    ]
+  },
+  {
+    "query": "b trees and hash indexes",
+    "expected": [
+      "9780073523323#11",
+      "9780078022159#14",
+      "9780133970777#17",
+      "9780072465631#8",
+      "9780072465631#10",
+      "9780262033848#11",
+      "9780262033848#18",
+      "9780262046305#18"
+    ]
+  },
+  {
+    "query": "query optimisation and join ordering",
+    "expected": ["9780078022159#15", "9780078022159#16"]
+  },
+  { "query": "recovery and write ahead logging", "expected": ["9780078022159#19"] },
+  {
+    "query": "distributed consensus and replication",
+    "expected": ["9781449373320#5", "9781449373320#9"]
+  },
+  { "query": "stream processing and unbounded data", "expected": ["9781449373320#11"] },
+  {
+    "query": "er modelling and weak entities",
+    "expected": ["9780073523323#7", "9780078022159#6", "9780133970777#3", "9780072465631#2"]
+  },
+  {
+    "query": "sql joins and aggregation",
+    "expected": [
+      "9780073523323#3",
+      "9780078022159#3",
+      "9780078022159#4",
+      "9780078022159#5",
+      "9780133970777#6",
+      "9780072465631#5"
+    ]
+  },
+  {
+    "query": "concurrency control with two phase locking",
+    "expected": ["9780073523323#15", "9780078022159#18", "9780133970777#21"]
+  },
+  {
+    "query": "storage layout and buffer management",
+    "expected": ["9780072465631#8", "9781449373320#3"]
+  },
+  { "query": "document databases and eventual consistency", "expected": ["9781449373320#2"] },
+  {
+    "query": "information retrieval and inverted indexes",
+    "expected": ["9780521865715#1", "9780521865715#2", "9780521865715#6"]
+  },
+  { "query": "vector space model and term weighting", "expected": ["9780521865715#6"] },
+  {
+    "query": "process scheduling and deadlock",
+    "expected": ["9781118063330#7", "9781119320913#5", "9780133591620#6"]
+  },
+  { "query": "tcp congestion control", "expected": ["9780133594140#3", "9780132126953#6"] },
+  { "query": "public key cryptography and rsa", "expected": ["9780134444284#9"] },
+  {
+    "query": "dynamic programming and greedy algorithms",
+    "expected": [
+      "9780262033848#15",
+      "9780262033848#16",
+      "9780262046305#14",
+      "9780262046305#15",
+      "9780321295354#4",
+      "9780321295354#6"
+    ]
+  },
+  {
+    "query": "neural networks and backpropagation",
+    "expected": ["9780387310732#5", "9780262035613#6", "9780262035613#9", "9780262035613#10"]
+  },
+  {
+    "query": "relational schema design",
+    "expected": ["9780073523323#8", "9780078022159#7", "9780133970777#15", "9780072465631#19"]
+  },
+  { "query": "multiversion concurrency control", "expected": ["9781449373320#7"] },
+  { "query": "database recovery after a crash", "expected": ["9780078022159#19"] },
+  { "query": "sql queries with constraints and triggers", "expected": ["9780072465631#5"] },
+  { "query": "requirements engineering and use cases", "expected": ["9780133943030#4"] },
+  { "query": "cn", "expected": ["9780133594140#1", "9780133594140#8"] },
+  {
+    "query": "dbms normal forms",
+    "expected": [
+      "9780078022159#7",
+      "9780073523323#8",
+      "9780133970777#14",
+      "9780136086208#15",
+      "9780133970777#15"
+    ]
+  },
+  {
+    "query": "daa divide and conquer",
+    "expected": ["9780132316811#5", "9780262046305#4", "9780262033848#4"]
+  },
+  { "query": "os cpu scheduling", "expected": ["9781119320913#5"] },
+  { "query": "binary search tree", "expected": ["9780262033848#12"] },
+  { "query": "graph neural networks", "expected": ["9783031015885#5", "9783031015885#6"] },
+  { "query": "transformer self attention", "expected": ["9781098103217#3"] },
+  { "query": "rag", "expected": ["9781098150969#8"] },
+  { "query": "quantum fourier transform", "expected": ["9781107002173#5"] },
+  { "query": "UE24CS351A", "expected": ["9780078022159#1", "9780072465631#1", "9780133970777#1"] }
 ]
