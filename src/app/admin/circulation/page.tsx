@@ -8,8 +8,11 @@ import { getDeskPolicy, getRecentActivity } from "@/server/services/circulation"
 
 export const metadata: Metadata = { title: "Circulation desk" };
 
-export default async function CirculationPage() {
+export default async function CirculationPage({ searchParams }: PageProps<"/admin/circulation">) {
   await requireUser("LIBRARIAN");
+  const { mode, copy } = await searchParams;
+  const initialBarcode =
+    typeof copy === "string" && /^LS\d{8}$/.test(copy.toUpperCase()) ? copy.toUpperCase() : "";
   const [policy, recent] = await Promise.all([getDeskPolicy(), getRecentActivity(8)]);
 
   return (
@@ -20,7 +23,11 @@ export default async function CirculationPage() {
       />
 
       <div className="grid gap-[var(--space-2xl)] lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
-        <DeskForm policy={policy} />
+        <DeskForm
+          policy={policy}
+          initialMode={mode === "return" ? "return" : "issue"}
+          initialBarcode={initialBarcode}
+        />
         <DeskRules policy={policy} />
       </div>
 
