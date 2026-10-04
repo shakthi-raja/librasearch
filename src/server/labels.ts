@@ -15,7 +15,8 @@ export type Label = {
   qr: string;
 };
 
-async function qrDataUri(text: string) {
+/** A QR code as an SVG data URI, ready for an img element. */
+export async function qrDataUri(text: string) {
   const svg = await QRCode.toString(text, { type: "svg", margin: 0, errorCorrectionLevel: "M" });
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
