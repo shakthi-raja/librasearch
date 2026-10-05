@@ -43,6 +43,8 @@ describe("securityHeaders", () => {
     expect(headers["X-Content-Type-Options"]).toBe("nosniff");
     expect(headers["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
     expect(headers["Permissions-Policy"]).toContain("geolocation=()");
+    // the desk, kiosk and stocktake scan with this site's own camera only
+    expect(headers["Permissions-Policy"]).toContain("camera=(self)");
   });
 
   it("sends HSTS in production only", () => {

@@ -1,17 +1,60 @@
 "use client";
 
-import { type KeyboardEvent, useActionState, useEffect, useRef, useState } from "react";
-import { type DeskState, deskAction } from "@/app/admin/circulation/actions";
+import {
+  type KeyboardEvent,
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { type DeskState, deskAction, resolveCardAction } from "@/app/admin/circulation/actions";
+import { CameraScanner } from "@/components/scan/camera-scanner";
+import { parseScan } from "@/lib/circulation/scan";
 import type { DeskPolicy, DeskReceipt } from "@/lib/circulation/types";
 import { formatDateTime, formatMoney, formatPeriod } from "@/lib/format";
 
 type Mode = "issue" | "return";
 
-export function DeskForm({ policy }: { policy: DeskPolicy }) {
+export function DeskForm({
+  policy,
+  initialMode = "issue",
+  initialBarcode = "",
+}: {
+  policy: DeskPolicy;
+  initialMode?: Mode;
+  initialBarcode?: string;
+}) {
   const [state, formAction, pending] = useActionState<DeskState, FormData>(deskAction, {});
-  const [mode, setMode] = useState<Mode>("issue");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [member, setMember] = useState("");
-  const [barcode, setBarcode] = useState("");
+  const [barcode, setBarcode] = useState(initialBarcode);
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  const onScan = useCallback(async (text: string) => {
+    setScanning(false);
+    const scan = parseScan(text);
+    if (!scan) {
+      setScanNote("That code is not a LibraSearch label or library card.");
+      return;
+    }
+    if (scan.kind === "copy") {
+      setBarcode(scan.barcode);
+      setScanNote(`Copy ${scan.barcode} scanned.`);
+      barcodeRef.current?.focus();
+      return;
+    }
+    const result = await resolveCardAction(scan.token);
+    if ("error" in result) {
+      setScanNote(result.error);
+      return;
+    }
+    setMode("issue");
+    setMember(result.universityId);
+    setScanNote(`Card for ${result.universityId} scanned.`);
+    barcodeRef.current?.focus();
+  }, []);
   const memberRef = useRef<HTMLInputElement>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +137,16 @@ export function DeskForm({ policy }: { policy: DeskPolicy }) {
           className="grid gap-[var(--space-sm)]"
         >
           <input type="hidden" name="mode" value={mode} />
+
+          <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
+            <button type="button" className="btn" onClick={() => setScanning(true)}>
+              Scan with the camera
+            </button>
+            <p role="status" aria-live="polite" className="text-sm text-muted">
+              {scanNote}
+            </p>
+          </div>
+          {scanning ? <CameraScanner onScan={onScan} onClose={() => setScanning(false)} /> : null}
 
           {state.error ? (
             <p role="alert" className="alert">
