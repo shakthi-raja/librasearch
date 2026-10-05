@@ -8,6 +8,7 @@ const valid = {
   DB_FACULTY_PASSWORD: "faculty-secret-1",
   DB_LIBRARIAN_PASSWORD: "librarian-secret-1",
   REDIS_URL: "redis://:redis-secret@127.0.0.1:6380/0",
+  CARD_SECRET: "card-secret-that-is-long-enough-0001",
 };
 
 describe("app environment", () => {
@@ -56,5 +57,11 @@ describe("app environment", () => {
 describe("admin environment", () => {
   it("requires the admin password", () => {
     expect(() => parseEnv(adminEnvSchema, { DB_NAME: "librasearch" })).toThrow(/DB_ADMIN_PASSWORD/);
+  });
+
+  it("requires a long card secret", () => {
+    expect(() => parseEnv(appEnvSchema, { ...valid, CARD_SECRET: "too-short-secret" })).toThrow(
+      /CARD_SECRET/,
+    );
   });
 });
