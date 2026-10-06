@@ -4,6 +4,8 @@ import type { DeskActivity, DeskPolicy, DeskReceipt } from "@/lib/circulation/ty
 import { mapDbError } from "@/server/db/errors";
 import { pool } from "@/server/db/pool";
 import { AppError } from "@/server/http/errors";
+import { publishLive } from "@/server/live";
+import { log } from "@/server/log";
 import {
   deskPolicy,
   findCopy,
@@ -109,7 +111,44 @@ export async function returnCopy(input: {
   if (!copy) throw new AppError("NOT_FOUND", "No copy has that barcode.");
 
   const loanId = await callReturn(input.barcode, input.actorId);
+  await tellHoldReady(copy.copyId).catch((error: unknown) =>
+    log.warn({ err: error }, "hold-ready notice not sent"),
+  );
   return receipt(loanId, "RETURN");
+}
+
+/**
+ * When a return fills a hold, the member waiting for it gets a notice and,
+ * if they have LibraSearch open, an alert straight away.
+ */
+async function tellHoldReady(copyId: number) {
+  const [rows] = await db().query<RowDataPacket[]>(
+    `SELECT h.member_id, h.pickup_by, b.title
+       FROM holds h JOIN books b ON b.book_id = h.book_id
+      WHERE h.ready_copy_id = ? AND h.status = 'READY' AND h.ready_at >= NOW(3) - INTERVAL 1 MINUTE
+      ORDER BY h.ready_at DESC LIMIT 1`,
+    [copyId],
+  );
+  const hold = rows[0];
+  if (!hold) return;
+  const pickupBy = new Date(hold.pickup_by).toLocaleString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const event = {
+    type: "hold-ready" as const,
+    title: "Your hold is ready",
+    body: `${String(hold.title)} is waiting for you on the hold shelf until ${pickupBy}.`,
+    link: "/student",
+  };
+  await db().query(
+    "INSERT INTO notifications (user_id, type, title, body, link) VALUES (?, 'HOLD_READY', ?, ?, ?)",
+    [Number(hold.member_id), event.title, event.body, event.link],
+  );
+  await publishLive({ userId: Number(hold.member_id) }, event);
 }
 
 type RenewalRole = "STUDENT" | "FACULTY" | "LIBRARIAN";

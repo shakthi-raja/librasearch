@@ -3,6 +3,7 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { signOutAction } from "@/server/actions/sign-out";
 import type { SessionUser } from "@/server/services/auth";
 import { CommandPalette } from "./command-palette";
+import { LiveEvents } from "./live-events";
 import { ModeToggle } from "./mode-toggle";
 import { NAV, ROLE_LABEL } from "./nav";
 import { NavLinks } from "./nav-links";
@@ -38,6 +39,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       <main id="main" className="container-app py-[var(--space-xl)]">
         {children}
       </main>
+      {user.role === "LIBRARIAN" ? null : <LiveEvents />}
     </>
   );
 }
