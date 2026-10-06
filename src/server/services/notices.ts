@@ -3,6 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import type { NoticeInput } from "@/lib/validation/notices";
 import { pool } from "@/server/db/pool";
 import { withTransaction } from "@/server/db/transaction";
+import { publishLive } from "@/server/live";
 
 export type Notice = {
   id: number;
@@ -53,7 +54,7 @@ export async function markNoticeRead(
 
 /** Writes one notice row per active member in the chosen audience. */
 export async function sendNotice(input: NoticeInput, actorId: number): Promise<number> {
-  return withTransaction(pool("librarian"), async (conn) => {
+  const sent = await withTransaction(pool("librarian"), async (conn) => {
     await conn.query("SET @app_user_id = ?", [actorId]);
     const [result] = await conn.query<ResultSetHeader>(
       `INSERT INTO notifications (user_id, type, title, body, link)
@@ -66,4 +67,8 @@ export async function sendNotice(input: NoticeInput, actorId: number): Promise<n
     );
     return result.affectedRows;
   });
+  const event = { type: "notice" as const, title: input.title, body: input.body, link: input.link };
+  const roles = input.audience === "BOTH" ? (["STUDENT", "FACULTY"] as const) : [input.audience];
+  await Promise.all(roles.map((role) => publishLive({ role }, event)));
+  return sent;
 }
