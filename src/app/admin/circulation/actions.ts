@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import type { DeskReceipt } from "@/lib/circulation/types";
+import { env } from "@/lib/config/env";
 import { issueSchema, returnSchema } from "@/lib/validation/circulation";
+import { verifyCardToken } from "@/server/auth/card";
 import { requireUser } from "@/server/auth/current";
 import { AppError } from "@/server/http/errors";
 import { log } from "@/server/log";
@@ -58,4 +60,19 @@ export async function deskAction(_: DeskState, form: FormData): Promise<DeskStat
     log.error({ err: error, mode }, "desk action failed");
     return { error: "The desk could not complete that. Try again." };
   }
+}
+
+export type CardResult = { universityId: string } | { error: string };
+
+/** Turns a scanned library card into the member it belongs to, if it is genuine and fresh. */
+export async function resolveCardAction(token: string): Promise<CardResult> {
+  await requireUser("LIBRARIAN");
+  const check = verifyCardToken(token, env().CARD_SECRET);
+  if (check.ok) return { universityId: check.universityId };
+  return {
+    error:
+      check.reason === "EXPIRED"
+        ? "That card code has expired. Ask the member to open their card again."
+        : "That is not a valid library card.",
+  };
 }

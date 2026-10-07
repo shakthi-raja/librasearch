@@ -42,6 +42,9 @@ export const appEnvSchema = z.object({
   SESSION_IDLE_HOURS: positiveInt.default(24 * 7),
   SESSION_ABSOLUTE_HOURS: positiveInt.default(24 * 30),
 
+  // signs the short-lived QR on a member's digital library card
+  CARD_SECRET: secret.refine((value) => value.length >= 32, "must be at least 32 characters"),
+
   // Google sign-in is offered only when both are set
   GOOGLE_CLIENT_ID: z.string().endsWith(".apps.googleusercontent.com").optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
