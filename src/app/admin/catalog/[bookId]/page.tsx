@@ -95,7 +95,12 @@ export default async function EditBookPage({ params }: PageProps<"/admin/catalog
       </section>
 
       <section aria-labelledby="editions" className="grid gap-[var(--space-lg)]">
-        <h2 id="editions">Editions and copies</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-[var(--space-sm)]">
+          <h2 id="editions">Editions and copies</h2>
+          <Link href={`/admin/labels?book=${book.bookId}`} className="btn">
+            Print copy labels
+          </Link>
+        </div>
         {book.editions.map((edition) => (
           <div key={edition.editionId} className="grid gap-[var(--space-sm)]">
             <h3>

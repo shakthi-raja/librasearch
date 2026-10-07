@@ -30,6 +30,7 @@ const SIGNALS: Record<string, string> = {
   LS201: "A subject cannot be moved under one of its own subjects.",
   LS202: "The previous edition must be an earlier edition of the same book.",
   LS203: "Chapter pages run past the end of the edition.",
+  LS301: "This stocktake is closed; start a new one to scan again.",
 };
 
 const UNIQUE: Record<string, string> = {

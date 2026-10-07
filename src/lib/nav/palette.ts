@@ -38,7 +38,8 @@ export function paletteItems(role: RoleName, query: string): PaletteItem[] {
   });
 
   const text = query.trim().toLowerCase();
-  if (!text) return all.slice(0, 9);
+  // the list scrolls, so an empty query shows every page in nav order
+  if (!text) return all;
 
   const matches = all.filter(
     (item) =>
