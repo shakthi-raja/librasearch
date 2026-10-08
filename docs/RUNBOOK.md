@@ -83,14 +83,50 @@ With the app running:
 pnpm eval:search
 ```
 
-The labelled set is `db/eval/queries.json`, twenty five queries each
-naming the chapters a good result should contain. The script reports
+The labelled set is `db/eval/queries.json`, thirty five queries each
+naming the chapters a good result should contain, as `isbn13#chapter` so
+the set survives a reseed. It includes abbreviations (cn, daa, rag) and a
+course code. The script reports
 Recall@10, MRR@10 and the first expected rank per query. It fails if
 any request errors. Run it before and after changing ranking weights,
 the score floor or the fusion constant; the numbers are only comparable
 against the same catalogue.
 
-The seeded catalogue currently scores Recall@10 0.865 and MRR@10 0.500.
+The seeded catalogue currently scores Recall@10 0.935 and MRR@10 0.871.
+
+## Query understanding
+
+Before either search runs, the query passes through two steps:
+
+- Aliases: words such as `cn`, `daa` or `ui/ux` become what they stand for.
+  Librarians manage them under Admin, Search; the map is cached in Redis for
+  ten minutes and dropped whenever a librarian changes it. A query in quotes
+  is searched literally.
+- Course codes: a query that is exactly a code such as `UE24CS351A` shows
+  that course with its prescribed books and searches the course title.
+
+Signed-in students and faculty then get their own syllabus first: chapters
+approved for their units rise by a quarter, books prescribed for their
+courses by a tenth. Guests and librarians see the plain ranking.
+
+## Redis
+
+Redis holds nothing that cannot be rebuilt, and every key starts with the
+database name, so the test schema and development never share entries.
+
+| Key | What it holds | Lifetime |
+|---|---|---|
+| `search:vector:*` | query vectors as float32 | a week |
+| `search:neighbours:<version>:*` | Qdrant neighbour ids and scores | an hour |
+| `search:catalogue-version` | bumped by the worker after each batch | permanent |
+| `search:trending:<day>` | searches that found something, per day | eight days |
+| `search:suggest:v2:<version>:*` | autocomplete per prefix | five minutes |
+| `search:aliases:v1` | the alias map | ten minutes |
+
+Availability is never cached: copies and racks always come from MySQL.
+After restoring a backup or editing Qdrant by hand, run
+`pnpm worker:rebuild`, which bumps the catalogue version and so retires
+every cached neighbour list.
 
 ## When to page someone
 

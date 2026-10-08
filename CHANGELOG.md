@@ -2,6 +2,19 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-10-07 - Syllabus and search
+
+- The 2026 CSE syllabus: 58 courses with their units and prescribed books,
+  and 88 more textbooks with editions checked against Open Library
+- Abbreviations such as cn, dbms and daa, and course codes, understood by
+  search; librarians curate the abbreviations
+- Each reader's own syllabus ranks first, and every result says why it is
+  there; whole books are matched beside chapters
+- Suggestions while typing, trending searches, and Redis caches for query
+  vectors and neighbour lists
+- The open shelf of books their authors publish free, and book covers
+- An estimate of when the next copy will be back for a book that is all out
+
 ## 2026-09-23 - Hardening
 
 - Content security policy with a nonce per request, plus HSTS, frame,

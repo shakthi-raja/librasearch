@@ -5,12 +5,13 @@ import { Availability } from "@/components/catalog/availability";
 import { BookCover } from "@/components/catalog/book-cover";
 import { PlaceHoldForm } from "@/components/holds/place-hold";
 import { type MapPin, StackMap } from "@/components/stack-map/stack-map";
-import { formatDateTime, formatOrdinal } from "@/lib/format";
+import { formatDate, formatDateTime, formatOrdinal } from "@/lib/format";
 import { currentUser } from "@/server/auth/current";
 import { pool } from "@/server/db/pool";
 import { type BookDetail, type CopyState, findBook } from "@/server/repositories/book";
 import { alternativeChapters, similarBooks } from "@/server/search/similar";
 import { getMemberHoldForBook } from "@/server/services/holds";
+import { waitForBook } from "@/server/services/wait";
 
 const STATE: Record<CopyState, string> = {
   AVAILABLE: "On the shelf",
@@ -78,6 +79,7 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
   const firstChapter = book.editions.flatMap((edition) => edition.chapters)[0];
   const alternatives =
     borrowable === 0 && firstChapter ? await alternativeChapters(firstChapter.chapterId) : [];
+  const wait = borrowable === 0 ? await waitForBook(book.bookId, user?.userId ?? null) : null;
 
   return (
     <article className="grid gap-[var(--space-2xl)]">
@@ -146,6 +148,17 @@ export default async function BookPage({ params }: PageProps<"/catalog/[bookId]"
         <h2 id="borrowing-heading" className="text-lg">
           Borrowing
         </h2>
+
+        {wait ? (
+          <p className="text-sm text-ink-2">
+            {wait.overdue
+              ? "A copy is overdue, so one could be back any day."
+              : `The next copy for you should be back around ${formatDate(wait.date)}.`}{" "}
+            {wait.ahead === 0
+              ? "Nobody is ahead of you in the queue."
+              : `${wait.ahead} ${wait.ahead === 1 ? "member is" : "members are"} ahead of you.`}
+          </p>
+        ) : null}
 
         {user?.role === "LIBRARIAN" ? (
           <p className="text-sm text-muted">
