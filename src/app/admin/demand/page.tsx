@@ -57,12 +57,16 @@ export default async function DemandPage() {
                   <td className="figure">{row.enrolled}</td>
                   <td>{row.nextExam ? formatDate(new Date(row.nextExam)) : "None scheduled"}</td>
                   <td className="figure">
-                    {row.assignedBooks === 0 ? (
-                      <span className="text-muted" title="No approved syllabus mapping yet">
-                        Not mapped
+                    {row.assignedBooks > 0 ? (
+                      row.assignedBooks
+                    ) : row.textbooks > 0 ? (
+                      <span title="No approved mapping yet; counting the syllabus textbooks">
+                        {row.textbooks} <span className="text-xs text-muted">textbooks</span>
                       </span>
                     ) : (
-                      row.assignedBooks
+                      <span className="text-muted" title="No mapping and no prescribed textbooks">
+                        Not mapped
+                      </span>
                     )}
                   </td>
                   <td className="figure">{row.usable}</td>

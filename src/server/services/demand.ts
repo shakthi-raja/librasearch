@@ -10,7 +10,10 @@ export type DemandRow = {
   section: string;
   enrolled: number;
   nextExam: string | null;
+  /** Books from approved chapter mappings. */
   assignedBooks: number;
+  /** Textbooks the syllabus prescribes, counted when nothing is mapped yet too. */
+  textbooks: number;
   usable: number;
   shortage: number;
 };
@@ -23,6 +26,10 @@ const ASSIGNED_BOOKS = `
     JOIN editions ed ON ed.edition_id = ch.edition_id
     JOIN books b ON b.book_id = ed.book_id
    WHERE u.offering_id = o.offering_id AND b.status = 'ACTIVE'`;
+
+const TEXTBOOKS = `
+  SELECT cb.book_id FROM course_books cb
+   WHERE cb.course_id = o.course_id AND cb.role = 'TEXTBOOK'`;
 
 export async function shortagePlanner(): Promise<DemandRow[]> {
   const [rows] = await pool("librarian").query<RowDataPacket[]>(
@@ -39,9 +46,12 @@ export async function shortagePlanner(): Promise<DemandRow[]> {
                JOIN editions ed ON ed.edition_id = ch.edition_id
                JOIN books b ON b.book_id = ed.book_id
               WHERE u.offering_id = o.offering_id AND b.status = 'ACTIVE') AS assigned_books,
+            (SELECT COUNT(*) FROM course_books cb
+              JOIN books b ON b.book_id = cb.book_id AND b.status = 'ACTIVE'
+              WHERE cb.course_id = o.course_id AND cb.role = 'TEXTBOOK') AS textbooks,
             (SELECT COUNT(*) FROM copies cp
                JOIN editions ed ON ed.edition_id = cp.edition_id
-              WHERE ed.book_id IN (${ASSIGNED_BOOKS})
+              WHERE (ed.book_id IN (${ASSIGNED_BOOKS}) OR ed.book_id IN (${TEXTBOOKS}))
                 AND cp.status = 'AVAILABLE' AND cp.loan_policy <> 'REFERENCE_ONLY') AS usable
        FROM course_offerings o
        JOIN courses c ON c.course_id = o.course_id
@@ -62,6 +72,7 @@ export async function shortagePlanner(): Promise<DemandRow[]> {
       enrolled,
       nextExam: row.next_exam ? String(row.next_exam) : null,
       assignedBooks: Number(row.assigned_books),
+      textbooks: Number(row.textbooks),
       usable,
       shortage: Math.max(0, enrolled - usable),
     };
