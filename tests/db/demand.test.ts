@@ -169,4 +169,18 @@ describe("shortagePlanner", () => {
     expect(earlyIndex).toBeGreaterThan(-1);
     expect(lateIndex).toBeGreaterThan(earlyIndex);
   });
+
+  it("counts the prescribed textbooks while nothing is mapped", async () => {
+    const offeringId = await insertOffering();
+    await enroll(offeringId, 5);
+    const { bookId } = await insertStockedBook(db, 3);
+    await db.query(
+      `INSERT INTO course_books (course_id, book_id, role, position)
+       SELECT course_id, ?, 'TEXTBOOK', 1 FROM course_offerings WHERE offering_id = ?`,
+      [bookId, offeringId],
+    );
+
+    const row = (await shortagePlanner()).find((r) => r.offeringId === offeringId);
+    expect(row).toMatchObject({ assignedBooks: 0, textbooks: 1, usable: 3, shortage: 2 });
+  });
 });
