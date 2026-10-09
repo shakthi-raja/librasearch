@@ -1,7 +1,7 @@
 import type { Route } from "next";
 import type { RoleName } from "@/server/repositories/auth";
 
-export type NavItem = { href: Route; label: string };
+export type NavItem = { href: Route; label: string; group?: string };
 
 /** Destinations per role. Items join as their screens land. */
 export const NAV: Record<RoleName, NavItem[]> = {
@@ -22,22 +22,23 @@ export const NAV: Record<RoleName, NavItem[]> = {
   ],
   LIBRARIAN: [
     { href: "/admin", label: "Overview" },
-    { href: "/admin/circulation", label: "Circulation" },
-    { href: "/admin/holds", label: "Holds" },
-    { href: "/admin/stocktake", label: "Stocktake" },
-    { href: "/admin/fines", label: "Fines" },
-    { href: "/admin/academic", label: "Academic" },
-    { href: "/admin/demand", label: "Demand" },
-    { href: "/admin/exams", label: "Exams" },
-    { href: "/admin/procurement", label: "Procurement" },
-    { href: "/admin/analytics", label: "Analytics" },
-    { href: "/admin/audit", label: "Audit" },
-    { href: "/admin/settings", label: "Settings" },
-    { href: "/admin/notices", label: "Notices" },
-    { href: "/admin/vector", label: "Vector" },
-    { href: "/admin/search", label: "Search" },
-    { href: "/admin/catalog", label: "Catalogue" },
-    { href: "/admin/import", label: "Import" },
+    { href: "/admin/circulation", label: "Circulation desk", group: "Desk" },
+    { href: "/admin/holds", label: "Holds", group: "Desk" },
+    { href: "/admin/fines", label: "Fines", group: "Desk" },
+    { href: "/kiosk", label: "Self-checkout kiosk", group: "Desk" },
+    { href: "/admin/stocktake", label: "Stocktake", group: "Desk" },
+    { href: "/admin/catalog", label: "Catalogue", group: "Collection" },
+    { href: "/admin/import", label: "Import", group: "Collection" },
+    { href: "/admin/procurement", label: "Procurement", group: "Collection" },
+    { href: "/admin/academic", label: "Academic", group: "Planning" },
+    { href: "/admin/demand", label: "Demand", group: "Planning" },
+    { href: "/admin/exams", label: "Exams", group: "Planning" },
+    { href: "/admin/analytics", label: "Analytics", group: "Planning" },
+    { href: "/admin/notices", label: "Notices", group: "System" },
+    { href: "/admin/search", label: "Search", group: "System" },
+    { href: "/admin/vector", label: "Vector index", group: "System" },
+    { href: "/admin/audit", label: "Audit log", group: "System" },
+    { href: "/admin/settings", label: "Settings", group: "System" },
     { href: "/account", label: "Account" },
   ],
 };

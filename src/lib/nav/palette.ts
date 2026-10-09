@@ -30,7 +30,11 @@ const EXTRA: Record<RoleName, PaletteItem[]> = {
  */
 export function paletteItems(role: RoleName, query: string): PaletteItem[] {
   const seen = new Set<string>();
-  const pages: PaletteItem[] = NAV[role].map((item) => ({ ...item, hint: "Page" }));
+  const pages: PaletteItem[] = NAV[role].map((item) => ({
+    label: item.label,
+    href: item.href,
+    hint: item.group ?? "Page",
+  }));
   const all = [...pages, ...EXTRA[role]].filter((item) => {
     if (seen.has(item.href)) return false;
     seen.add(item.href);
@@ -38,7 +42,7 @@ export function paletteItems(role: RoleName, query: string): PaletteItem[] {
   });
 
   const text = query.trim().toLowerCase();
-  // the list scrolls, so an empty query shows every page in nav order
+  // the list scrolls, so an empty query shows every page in menu order
   if (!text) return all;
 
   const matches = all.filter(
