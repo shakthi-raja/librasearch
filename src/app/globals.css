@@ -364,7 +364,8 @@
     background: var(--color-paper-3);
   }
 
-  .nav-link[aria-current="page"] {
+  .nav-link[aria-current="page"],
+  .nav-link[data-active="true"] {
     color: var(--color-ink);
     background: var(--color-paper-3);
   }
