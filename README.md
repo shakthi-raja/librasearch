@@ -59,6 +59,7 @@ Seeded for local development only.
 | Librarian | `librarian@librasearch.local` | `Libra@2026` |
 | Faculty | `faculty@librasearch.local` | `Libra@2026` |
 | Student | `student@librasearch.local` or `PES1UG24CS001` | `Libra@2026` |
+| Student (team) | `PES1UG25CS843` Shakthi, `PES2UG23CS277` Kishan | `Libra@2026` |
 
 ## Scripts
 
