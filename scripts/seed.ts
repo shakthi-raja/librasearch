@@ -48,7 +48,8 @@ const DEMO_USERS = [
     designation: null,
     batch: 2024,
   },
-  // the two of us, so we can sign in as ourselves and link Google
+  // the two of us, so we can sign in as ourselves and link Google; both of us
+  // take the fifth semester courses this term, whatever our admission year
   {
     role: "STUDENT",
     universityId: "PES1UG25CS843",
@@ -56,7 +57,7 @@ const DEMO_USERS = [
     email: "shakthi.raja@librasearch.local",
     dept: "CSE",
     designation: null,
-    batch: 2025,
+    batch: 2024,
   },
   {
     role: "STUDENT",
@@ -65,7 +66,7 @@ const DEMO_USERS = [
     email: "kishan.s@librasearch.local",
     dept: "CSE",
     designation: null,
-    batch: 2023,
+    batch: 2024,
   },
 ] as const;
 
