@@ -4,6 +4,14 @@ Syllabus-aware discovery and demand-adaptive circulation for a campus library.
 
 Students search by meaning and land on the chapter their syllabus is talking about, with the copy on the shelf and the rack it sits on. Faculty confirm which chapters cover each unit. The desk issues, returns and holds copies under rules the database itself enforces, and lending tightens on its own when an exam is close and copies are short.
 
+## What it does
+
+- Search by meaning and by words, fused, over chapters and whole books. Abbreviations such as cn, dbms or daa and course codes such as UE24CS351A are understood, and a signed-in student's own syllabus ranks first.
+- The 2026 CSE syllabus: every course, its units and its prescribed books, with an approved chapter-level reading list per unit.
+- A circulation desk, holds, fines and renewals whose rules live in MySQL procedures, triggers and events.
+- Phones as scanners: QR labels on every copy, a signed digital library card, a self-checkout kiosk and rack stocktakes.
+- Live alerts when a hold is ready, an estimate of when an all-out book will be back, and an open shelf of books their authors publish free.
+
 ## Stack
 
 | Layer | Choice |
@@ -11,7 +19,7 @@ Students search by meaning and land on the chapter their syllabus is talking abo
 | Web | Next.js 16 (App Router), React 19, TypeScript 7, Tailwind CSS 4 |
 | Source of truth | MySQL 9.7 LTS: constraints, generated columns, triggers, procedures, events, roles and grants |
 | Semantic index | Qdrant 1.19, rebuilt from MySQL at any time |
-| Shared state | Redis 8.10 for rate limits and caches, never a source of truth |
+| Shared state | Redis 8.10 for rate limits, search caches, trending searches and live updates, never a source of truth |
 | Quality | Biome, strict TypeScript, Vitest, Playwright, lefthook, GitHub Actions |
 
 SQL is written by hand through `mysql2`, with no ORM. Sessions are opaque tokens with Argon2id passwords, with no auth library.
@@ -90,6 +98,17 @@ behind a tunnel), and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 - A member whose Google address differs from the college email signs in with
   the university ID once and links Google from the account page.
 - Without the two variables the button is hidden and the routes refuse.
+
+### Phones and the camera
+
+Cameras only work over HTTPS (or on localhost), so phones reach the app through a tunnel or a reverse proxy with a certificate. Set `APP_URL` to that public address before printing labels, because each label's QR encodes `APP_URL/c/<barcode>`; Google sign-in needs the same address as its redirect.
+
+- Labels: Admin, Catalogue, a book, Print copy labels. A4 sheets of 21.
+- Library card: students and faculty open Card; the QR renews itself every few minutes. Set `CARD_SECRET` to at least 32 random characters.
+- Kiosk: sign a tablet in as a librarian and open `/kiosk`. Members borrow with their card and return books by scanning them.
+- Stocktake: Admin, Desk, Stocktake, choose a rack and scan along it.
+
+The app can be installed to a phone's home screen from the browser menu.
 
 ## Documentation
 
