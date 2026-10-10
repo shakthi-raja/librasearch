@@ -2,6 +2,17 @@
 
 Notable changes to LibraSearch, newest first.
 
+## 2026-10-09 - Phones, cards and live updates
+
+- Google sign-in for members already on the library's records, with
+  linking and unlinking from the account page
+- QR labels for every copy, and a page each label opens
+- Scanning with the phone camera at the desk, a signed digital library
+  card, a self-checkout kiosk and rack stocktakes
+- Live alerts when a hold is ready and when a notice is sent
+- The demand planner counts prescribed textbooks until chapters are mapped
+- The librarian's sections grouped into menus, and an installable app
+
 ## 2026-10-07 - Syllabus and search
 
 - The 2026 CSE syllabus: 58 courses with their units and prescribed books,
