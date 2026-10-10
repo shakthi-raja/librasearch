@@ -46,6 +46,26 @@ const DEMO_USERS = [
     email: "student@librasearch.local",
     dept: "CSE",
     designation: null,
+    batch: 2024,
+  },
+  // the two of us, so we can sign in as ourselves and link Google
+  {
+    role: "STUDENT",
+    universityId: "PES1UG25CS843",
+    fullName: "Shakthi Raja G P",
+    email: "shakthi.raja@librasearch.local",
+    dept: "CSE",
+    designation: null,
+    batch: 2025,
+  },
+  {
+    role: "STUDENT",
+    universityId: "PES2UG23CS277",
+    fullName: "Kishan S",
+    email: "kishan.s@librasearch.local",
+    dept: "CSE",
+    designation: null,
+    batch: 2023,
   },
 ] as const;
 
@@ -85,7 +105,7 @@ async function seedDemoUsers(db: Connection, passwordHash: string) {
         passwordHash,
         user.designation,
         user.role === "STUDENT" ? "B.Tech CSE" : null,
-        user.role === "STUDENT" ? 2024 : null,
+        "batch" in user ? user.batch : null,
         user.dept,
         user.role,
       ],
