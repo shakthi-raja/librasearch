@@ -90,7 +90,8 @@ describe("account lockout", () => {
 
 describe("rate limiting", () => {
   it("throttles one identifier hammered from many addresses", async () => {
-    const identifier = "nobody.at.all@test.librasearch.local";
+    // the counter lives in redis for the whole window, so a rerun needs a name of its own
+    const identifier = `nobody.${Date.now()}@test.librasearch.local`;
     const results = [];
     for (let i = 0; i < 11; i++) results.push(await signIn({ identifier, password: "x" }, meta()));
     expect(results.slice(0, 10).every((r) => !r.ok && r.reason === "INVALID")).toBe(true);
