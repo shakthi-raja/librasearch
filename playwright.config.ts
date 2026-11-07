@@ -1,9 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+// The suite runs its own server on its own schema, so the app on 3000 and the
+// development data are never touched by what the specs create.
+const port = Number(process.env.E2E_PORT ?? 3100);
+const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
+const database = `${(process.env.DB_NAME ?? "librasearch").replace(/_e2e$/, "")}_e2e`;
 
-// Runs against a production build of the app on the seeded development
-// database: `pnpm db:seed && pnpm build`, then `pnpm test:e2e`.
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -14,9 +16,10 @@ export default defineConfig({
   use: { baseURL, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm start -p 3000",
+    command: `pnpm exec tsx scripts/e2e-db.ts && pnpm start -p ${port}`,
     url: baseURL,
-    reuseExistingServer: true,
-    timeout: 60_000,
+    env: { DB_NAME: database, APP_URL: baseURL },
+    reuseExistingServer: false,
+    timeout: 180_000,
   },
 });
