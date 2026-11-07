@@ -1,4 +1,4 @@
-import type { RowDataPacket } from "mysql2/promise";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { embedDocument } from "@/server/vector/embedding";
 import { dropCollections, ensureCollections, upsertPoint } from "@/server/vector/qdrant";
 import { closeWorkerDb, workerDb } from "./db";
@@ -10,6 +10,11 @@ import { bumpCatalogueVersion, closeWorkerRedis } from "./redis";
 export async function rebuild() {
   const db = workerDb();
   let points = 0;
+
+  // jobs queued before the replay starts are covered by it
+  const [[queued]] = await db.query<RowDataPacket[]>(
+    "SELECT COALESCE(MAX(job_id), 0) AS last FROM embedding_outbox",
+  );
 
   await dropCollections();
   await ensureCollections();
@@ -42,8 +47,15 @@ export async function rebuild() {
     points += 1;
   }
 
+  const [settled] = await db.query<ResultSetHeader>(
+    `UPDATE embedding_outbox
+        SET status = 'DONE', processed_at = NOW(3), last_error = NULL
+      WHERE status = 'PENDING' AND job_id <= ?`,
+    [Number(queued?.last ?? 0)],
+  );
+
   await bumpCatalogueVersion();
-  log.info({ points }, "rebuild complete");
+  log.info({ points, superseded: settled.affectedRows }, "rebuild complete");
   return points;
 }
 
