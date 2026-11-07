@@ -52,7 +52,10 @@ is reachable, and compose waits for it before calling the service healthy.
 
 ### Demo accounts
 
-Seeded for local development only.
+Seeded for local development only. The seed also lays down twelve weeks of
+library use up to the moment it runs: loans and returns, a few overdue books,
+late fines, hold queues on the textbooks that are all out, purchase requests
+and searches, so every screen has something to show.
 
 | Role | Sign in with | Password |
 |---|---|---|

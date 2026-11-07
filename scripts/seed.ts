@@ -1,10 +1,13 @@
 import { existsSync } from "node:fs";
 import { hash } from "@node-rs/argon2";
-import type { Connection } from "mysql2/promise";
+import { Redis } from "ioredis";
+import type { Connection, RowDataPacket } from "mysql2/promise";
+import { seedActivity } from "../db/seed/activity";
 import { seedCatalogue } from "../db/seed/catalogue";
 import { generate } from "../db/seed/generate";
 import { OPEN_RESOURCES } from "../db/seed/open-resources";
 import { SEARCH_ALIASES } from "../db/seed/search-aliases";
+import { trendingKey } from "../src/lib/search/cache-keys";
 import { adminConnection, adminEnv } from "./lib/admin-db";
 
 const out = (line: string) => process.stdout.write(`${line}\n`);
@@ -115,6 +118,38 @@ async function seedDemoUsers(db: Connection, passwordHash: string) {
   out(`demo users   ${DEMO_USERS.length}`);
 }
 
+// The home page reads trending searches from redis; give it the last week of the log.
+async function primeTrending(db: Connection) {
+  if (!process.env.REDIS_URL) return 0;
+  const [rows] = await db.query<RowDataPacket[]>(
+    `SELECT LOWER(TRIM(query_text)) AS query, DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(*) AS n
+       FROM search_log
+      WHERE result_count > 0 AND created_at >= UTC_TIMESTAMP() - INTERVAL 7 DAY
+      GROUP BY query, day`,
+  );
+  const client = new Redis(process.env.REDIS_URL, {
+    keyPrefix: `${process.env.DB_NAME ?? "librasearch"}:`,
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+  });
+  try {
+    await client.connect();
+    const batch = client.multi();
+    for (const row of rows) {
+      const key = trendingKey(new Date(`${row.day}T12:00:00Z`));
+      batch.zadd(key, "GT", Number(row.n), String(row.query)).expire(key, 8 * 24 * 3600);
+    }
+    batch.del("search:trending:top");
+    await batch.exec();
+    return rows.length;
+  } catch {
+    // trending fills up on its own as people search
+    return 0;
+  } finally {
+    client.disconnect();
+  }
+}
+
 async function main() {
   if (existsSync(".env")) process.loadEnvFile(".env");
   if (process.env.NODE_ENV === "production")
@@ -155,6 +190,14 @@ async function main() {
       );
     }
     out(`open shelf   ${OPEN_RESOURCES.length}`);
+
+    const activity = await seedActivity(db);
+    out(
+      activity
+        ? `activity     ${activity.loans} loans (${activity.open} out, ${activity.overdue} overdue), ${activity.holds} holds, ${activity.fines} fines, ${activity.requests} requests, ${activity.searches} searches`
+        : "activity     kept, the library already has loans",
+    );
+    out(`trending     ${await primeTrending(db)} entries`);
   } finally {
     await db.end();
   }
