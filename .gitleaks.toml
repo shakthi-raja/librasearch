@@ -4,6 +4,9 @@ title = "librasearch"
 useDefault = true
 
 [allowlist]
-description = "Throwaway CI credentials and documented demo values"
+description = "Throwaway CI credentials, test secrets and documented demo values"
 paths = ['''\.env\.example''']
-regexes = ['''ci-[a-z]+-password-[0-9]+''']
+regexes = [
+  '''ci-[a-z]+-password-[0-9]+''',
+  '''a-test-secret-that-is-long-enough-[0-9]+''',
+]
