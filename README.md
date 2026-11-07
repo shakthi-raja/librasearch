@@ -70,6 +70,7 @@ Seeded for local development only.
 | `pnpm check` | Biome, route types and `tsc` |
 | `pnpm test:unit` | Pure logic, no services needed |
 | `pnpm test:db` | Constraints, triggers, routines and grants against a fresh `_test` schema |
+| `pnpm test:e2e` | Browser suite on its own server (port 3100) and a freshly seeded `_e2e` schema; needs `pnpm build` first |
 | `pnpm db:migrate`, `pnpm db:status` | Apply or list migrations; provisions database accounts |
 | `pnpm db:reset` | Drop and rebuild the development schema |
 | `pnpm db:seed` | Load development data |
