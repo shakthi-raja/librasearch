@@ -15,6 +15,19 @@ function redis() {
   return client;
 }
 
+/** The client once it can take commands, or null if redis does not answer in time. */
+function ready(): Promise<Redis | null> {
+  const current = redis();
+  if (current.status === "ready") return Promise.resolve(current);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 3_000);
+    current.once("ready", () => {
+      clearTimeout(timer);
+      resolve(current);
+    });
+  });
+}
+
 /**
  * Tells the web app that the vector index changed, so cached neighbour lists
  * keyed by the old version stop being used. Redis being down is not an error
@@ -22,13 +35,17 @@ function redis() {
  */
 export async function bumpCatalogueVersion() {
   try {
-    await redis().incr(CATALOGUE_VERSION_KEY);
+    const client = await ready();
+    if (!client) throw new Error("redis did not answer");
+    await client.incr(CATALOGUE_VERSION_KEY);
   } catch (error) {
     log.warn({ err: error }, "could not bump the catalogue version");
   }
 }
 
+// disconnect rather than quit: a quit sent while still connecting is refused
+// without the offline queue, and the open socket would keep a script alive
 export async function closeWorkerRedis() {
-  await client?.quit().catch(() => undefined);
+  client?.disconnect();
   client = undefined;
 }
