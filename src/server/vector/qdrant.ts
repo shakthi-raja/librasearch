@@ -52,7 +52,11 @@ export function qdrant() {
 
 export const vectorSize = () => env().EMBEDDING_DIM;
 
-const collectionName = (base: CollectionName, prefix = "") => `${prefix}${base}`;
+const collectionName = (base: CollectionName, prefix = env().QDRANT_COLLECTION_PREFIX) =>
+  `${prefix}${base}`;
+
+/** The collection this environment reads and writes. */
+export const collection = (base: CollectionName) => collectionName(base);
 
 export async function qdrantReady() {
   try {
@@ -64,7 +68,7 @@ export async function qdrantReady() {
 }
 
 /** Creates any missing collection and its payload indexes. A no-op when ready. */
-export async function ensureCollections(prefix = "") {
+export async function ensureCollections(prefix?: string) {
   for (const base of BASE_NAMES) {
     const name = collectionName(base, prefix);
     const { exists } = await qdrant().collectionExists(name);
@@ -89,7 +93,7 @@ export async function ensureCollections(prefix = "") {
   }
 }
 
-export async function dropCollections(prefix = "") {
+export async function dropCollections(prefix?: string) {
   for (const base of BASE_NAMES) {
     const name = collectionName(base, prefix);
     const { exists } = await qdrant().collectionExists(name);
@@ -140,7 +144,7 @@ export async function deleteByEditionId(collection: CollectionName, editionId: n
   });
 }
 
-export async function collectionInfo(base: CollectionName, prefix = "") {
+export async function collectionInfo(base: CollectionName, prefix?: string) {
   return qdrant().getCollection(collectionName(base, prefix));
 }
 

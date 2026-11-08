@@ -1,7 +1,7 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
-import { qdrant } from "@/server/vector/qdrant";
+import { collection, qdrant } from "@/server/vector/qdrant";
 import { cached, catalogueVersion, digest } from "./cache";
 import { queryVector } from "./vectors";
 
@@ -26,7 +26,7 @@ export async function semanticBooks(query: string, limit = 10): Promise<BookMatc
       ? null
       : `search:neighbours:${version}:books:${digest([query.trim().toLowerCase(), limit])}`;
   const points = await cached(key, 3600, async () => {
-    const result = await qdrant().query("books", {
+    const result = await qdrant().query(collection("books"), {
       query: await queryVector(query),
       limit,
       score_threshold: 0.5,

@@ -1,6 +1,6 @@
 import type { Connection, Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureCollections, qdrant, qdrantReady } from "@/server/vector/qdrant";
+import { collection, ensureCollections, qdrant, qdrantReady } from "@/server/vector/qdrant";
 import { claimJobs, markFailed, runOnce } from "../../worker/jobs";
 import { insertStockedBook } from "../support/catalogue";
 import { adminConnection, adminPool } from "../support/db";
@@ -17,8 +17,8 @@ async function insertChapter(editionId: number) {
   return result.insertId;
 }
 
-async function pointsFor(collection: "chapters" | "books", key: string, value: number) {
-  const result = await qdrant().scroll(collection, {
+async function pointsFor(base: "chapters" | "books", key: string, value: number) {
+  const result = await qdrant().scroll(collection(base), {
     filter: { must: [{ key, match: { value } }] },
     with_payload: true,
     limit: 20,
