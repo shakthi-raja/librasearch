@@ -6,6 +6,7 @@ import {
   randomToken,
   safeNext,
 } from "@/lib/auth/oidc";
+import { env } from "@/lib/config/env";
 import { currentUser } from "@/server/auth/current";
 import { googleConfig } from "@/server/auth/google";
 import { flowCookie } from "@/server/auth/google-flow";
@@ -17,10 +18,10 @@ export async function GET(request: NextRequest) {
   const next = safeNext(request.nextUrl.searchParams.get("next"));
 
   if (!config) {
-    return NextResponse.redirect(new URL("/login?error=google_unavailable", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_unavailable", env().APP_URL));
   }
   if (intent === "link" && !(await currentUser())) {
-    return NextResponse.redirect(new URL("/login?next=/account", request.url));
+    return NextResponse.redirect(new URL("/login?next=/account", env().APP_URL));
   }
 
   const state = randomToken();
