@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
 import { AppError } from "@/server/http/errors";
 import { embedQuery } from "@/server/vector/embedding";
-import { qdrant } from "@/server/vector/qdrant";
+import { collection, qdrant } from "@/server/vector/qdrant";
 
 export type FacultyUnit = {
   unitId: number;
@@ -107,7 +107,7 @@ export async function suggestChapters(unitId: number, userId: number) {
     `${unit.courseTitle}. Unit ${unit.unitNo}: ${unit.title}. ${unit.topics}`,
   );
 
-  const result = await qdrant().query("chapters", {
+  const result = await qdrant().query(collection("chapters"), {
     query: vector,
     limit: 8,
     score_threshold: 0.45,

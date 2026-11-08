@@ -1,7 +1,7 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
-import { qdrant } from "@/server/vector/qdrant";
+import { collection, qdrant } from "@/server/vector/qdrant";
 
 export type SimilarBook = {
   bookId: number;
@@ -26,10 +26,10 @@ export type AlternativeChapter = {
 /** Book-vector neighbours, excluding the book itself. */
 export async function similarBooks(bookId: number, limit = 6): Promise<SimilarBook[]> {
   const db = pool("student");
-  const [book] = await qdrant().retrieve("books", { ids: [bookId], with_vector: true });
+  const [book] = await qdrant().retrieve(collection("books"), { ids: [bookId], with_vector: true });
   if (!book || !Array.isArray(book.vector)) return [];
 
-  const result = await qdrant().query("books", {
+  const result = await qdrant().query(collection("books"), {
     query: book.vector,
     limit: limit + 1,
     with_payload: false,
@@ -85,13 +85,13 @@ export async function alternativeChapters(
   const ownBook = Number(own[0]?.book_id);
   if (!Number.isInteger(ownBook)) return [];
 
-  const [chapter] = await qdrant().retrieve("chapters", {
+  const [chapter] = await qdrant().retrieve(collection("chapters"), {
     ids: [chapterId],
     with_vector: true,
   });
   if (!chapter || !Array.isArray(chapter.vector)) return [];
 
-  const result = await qdrant().query("chapters", {
+  const result = await qdrant().query(collection("chapters"), {
     query: chapter.vector,
     limit: 24,
     with_payload: false,

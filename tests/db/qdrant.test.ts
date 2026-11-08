@@ -9,7 +9,7 @@ import {
 } from "@/server/vector/qdrant";
 
 const ready = await qdrantReady();
-const prefix = "test_";
+const prefix = "probe_";
 
 describe.skipIf(!ready)("qdrant collections", () => {
   beforeAll(async () => {

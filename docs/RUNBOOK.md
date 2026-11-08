@@ -92,7 +92,13 @@ any request errors. Run it before and after changing ranking weights,
 the score floor or the fusion constant; the numbers are only comparable
 against the same catalogue.
 
-The seeded catalogue currently scores Recall@10 0.935 and MRR@10 0.871.
+With every copy on the shelf the seeded catalogue scores Recall@10 0.935 and
+MRR@10 0.871. The seed's term of loans takes every copy of the busiest
+textbooks out, and ranking gives a fifth of the score to a copy being in, so
+some of their chapters drop a place: about 0.913 and 0.843.
+
+The test suite writes vectors under `QDRANT_COLLECTION_PREFIX=test_`; leave it
+empty for the app, or a test run would overwrite the development index.
 
 ## Query understanding
 

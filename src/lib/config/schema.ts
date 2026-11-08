@@ -28,6 +28,11 @@ export const appEnvSchema = z.object({
 
   QDRANT_URL: z.url().default("http://127.0.0.1:6333"),
   QDRANT_API_KEY: z.string().default(""),
+  // separates environments that share one Qdrant, such as the test suite
+  QDRANT_COLLECTION_PREFIX: z
+    .string()
+    .regex(/^[a-z0-9_]*$/, "lowercase letters, digits and underscores only")
+    .default(""),
 
   REDIS_URL: z.string().regex(/^rediss?:\/\//, "must be a redis:// or rediss:// URL"),
 

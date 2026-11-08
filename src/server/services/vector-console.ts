@@ -1,7 +1,7 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/server/db/pool";
-import { COLLECTIONS, qdrant } from "@/server/vector/qdrant";
+import { COLLECTIONS, type CollectionName, collection, qdrant } from "@/server/vector/qdrant";
 import { rebuild } from "../../../worker/rebuild";
 
 export type VectorStatus = {
@@ -35,9 +35,9 @@ export async function vectorStatus(): Promise<VectorStatus> {
   };
 
   const qdrantCounts: Record<string, number | null> = {};
-  for (const name of Object.keys(COLLECTIONS)) {
+  for (const name of Object.keys(COLLECTIONS) as CollectionName[]) {
     try {
-      const result = await qdrant().count(name, { exact: true });
+      const result = await qdrant().count(collection(name), { exact: true });
       qdrantCounts[name] = result.count;
     } catch {
       qdrantCounts[name] = null;
