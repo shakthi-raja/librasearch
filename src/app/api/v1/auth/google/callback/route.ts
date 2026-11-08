@@ -2,6 +2,7 @@ import type { Route } from "next";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 import { checkGoogleClaims, decodeFlowState } from "@/lib/auth/oidc";
+import { env } from "@/lib/config/env";
 import { sessionCookie } from "@/server/auth/cookie";
 import { currentUser, HOME_BY_ROLE, requestMeta } from "@/server/auth/current";
 import { exchangeCode, googleConfig, verifyIdToken } from "@/server/auth/google";
@@ -24,8 +25,9 @@ export async function GET(request: NextRequest) {
   const flow = decodeFlowState(request.cookies.get(FLOW_COOKIE)?.value);
   const failTo = flow?.intent === "link" ? "/account?google=failed" : "/login?error=google_failed";
 
+  // behind the tunnel request.url is the local address, so use the public one
   const finish = (path: string, cookie?: ResponseCookie) => {
-    const response = NextResponse.redirect(new URL(path, request.url));
+    const response = NextResponse.redirect(new URL(path, env().APP_URL));
     response.cookies.set(clearedFlowCookie());
     if (cookie) response.cookies.set(cookie);
     response.headers.set("Cache-Control", "no-store");
