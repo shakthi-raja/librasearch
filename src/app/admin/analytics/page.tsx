@@ -65,7 +65,7 @@ export default async function AnalyticsPage() {
                 aria-label={`${formatDate(new Date(day.day))}: ${day.loans} loans`}
               >
                 <div
-                  className="w-full rounded-t-[2px] bg-signal"
+                  className="w-full rounded-t-[2px] bg-accent"
                   style={{ height: `${Math.max(4, (day.loans / busiest) * 100)}%` }}
                   aria-hidden="true"
                 />
@@ -97,7 +97,7 @@ export default async function AnalyticsPage() {
                   </div>
                   <div className="mt-1 h-2 rounded-pill bg-paper-3" aria-hidden="true">
                     <div
-                      className="h-2 rounded-pill bg-signal"
+                      className="h-2 rounded-pill bg-accent"
                       style={{ width: `${(row.loans / categoryTop) * 100}%` }}
                     />
                   </div>

@@ -40,7 +40,7 @@ export default async function CoveragePage() {
                   role="img"
                   aria-label={`${row.covered} of ${row.units} units covered`}
                 >
-                  <div className="h-2 bg-signal" style={{ width: `${percent}%` }} />
+                  <div className="h-2 bg-accent" style={{ width: `${percent}%` }} />
                 </div>
               </li>
             );
