@@ -12,9 +12,14 @@ test.describe("copy labels", () => {
     await expect(page.getByText("Belongs on")).toBeVisible();
   });
 
-  test("an unknown barcode is not found", async ({ page }) => {
+  test("an unknown barcode is not found, under a single header", async ({ page }) => {
     const response = await page.goto("/c/LS00000000");
     expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { name: "There is nothing on this shelf" }),
+    ).toBeVisible();
+    await expect(page.getByRole("banner")).toHaveCount(1);
+    await expect(page.getByRole("main")).toHaveCount(1);
   });
 
   test("the app can be installed", async ({ request }) => {

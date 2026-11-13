@@ -59,3 +59,17 @@ test.describe("discovery", () => {
     await expect(page).toHaveURL(/\/search$/);
   });
 });
+
+test.describe("not found inside the librarian's section", () => {
+  test.use({ storageState: storageFor("librarian") });
+
+  test("a missing book keeps the section's own header", async ({ page }) => {
+    const response = await page.goto("/admin/catalog/999999");
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { name: "There is nothing on this shelf" }),
+    ).toBeVisible();
+    await expect(page.getByRole("banner")).toHaveCount(1);
+    await expect(page.getByRole("main")).toHaveCount(1);
+  });
+});
