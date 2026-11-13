@@ -120,6 +120,7 @@ The app can be installed to a phone's home screen from the browser menu.
 - `docs/database/` entity relationship and relational schema diagrams
 - `docs/DESIGN.md` the design system
 - `docs/RUNBOOK.md` worker, rebuilds, evaluation and outages
+- `docs/OPERATIONS.md` backups, restores and account tasks
 - `docs/PERFORMANCE.md` the query plans behind the desk screens
 - `docs/ACCESSIBILITY.md` the keyboard and screen-reader pass
 - `db/migrations/README.md` migration rules

@@ -48,4 +48,14 @@ test.describe("discovery", () => {
     await box.press("ArrowDown");
     await expect(box).toHaveAttribute("aria-activedescendant", /.+/);
   });
+
+  test("an unknown address shows the not-found page with a way back", async ({ page }) => {
+    const response = await page.goto("/no-such-page");
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { name: "There is nothing on this shelf" }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Search the catalogue" }).click();
+    await expect(page).toHaveURL(/\/search$/);
+  });
 });
