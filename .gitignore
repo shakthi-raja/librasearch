@@ -49,3 +49,6 @@ next-env.d.ts
 tests/e2e/.auth/
 
 !src/app/faculty/coverage
+
+# database dumps made by the backup steps in docs/OPERATIONS.md
+backups/

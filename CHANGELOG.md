@@ -2,10 +2,12 @@
 
 Notable changes to LibraSearch, newest first.
 
-## 2026-11-13 - Error pages
+## 2026-11-13 - Error pages and operations
 
 - A not-found page for old links and withdrawn copies, an error page with a
   retry, and a last-resort page if the whole app fails to start a page
+- An operations guide: backups and restores of MySQL, and the account
+  tasks that have no screen yet
 
 ## 2026-10-09 - Phones, cards and live updates
 
