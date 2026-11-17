@@ -7,6 +7,10 @@ Notable changes to LibraSearch, newest first.
 - On phones and small tablets the top bar folds its sections into a Menu
   button, so Sign in, every section and Sign out are always reachable
 - Narrower page edges on phones, so content gets the width
+- The librarian overview shows today at the desk: issues, returns, loans
+  out, overdue, holds to collect and unpaid fines, with the hold shelf and
+  the most overdue loans; the faculty overview lists each course's units
+  and their approved reading
 - Settling a fine that does not exist now answers not found, not
   already settled
 
