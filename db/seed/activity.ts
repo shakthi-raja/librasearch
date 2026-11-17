@@ -10,8 +10,19 @@ const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const HISTORY_DAYS = 84;
 
-// the browser suite issues, returns and scans these, so they stay free
-const RESERVED_BARCODES = new Set(["LS26000005", "LS26000007"]);
+// these stay on the shelf after seeding: the browser suite issues, returns and
+// scans 05 and 07, and 03, 04 and 31 to 34 are the copies for trying the desk
+// by hand (issue, the loan limit, a refusal), whatever day the seed runs
+const RESERVED_BARCODES = new Set([
+  "LS26000003",
+  "LS26000004",
+  "LS26000005",
+  "LS26000007",
+  "LS26000031",
+  "LS26000032",
+  "LS26000033",
+  "LS26000034",
+]);
 const RESERVED_MEMBERS = new Set(["PES1UG24CS003"]);
 // demo accounts get a believable record of their own and never an overdue loan
 const DEMO_MEMBERS = ["PES1UG24CS001", "PES1UG25CS843", "PES2UG23CS277", "FAC0001"];
