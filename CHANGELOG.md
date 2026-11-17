@@ -2,11 +2,19 @@
 
 Notable changes to LibraSearch, newest first.
 
-## 2026-11-17 - Phones
+## 2026-11-17 - Phones and overview pages
 
 - On phones and small tablets the top bar folds its sections into a Menu
   button, so Sign in, every section and Sign out are always reachable
 - Narrower page edges on phones, so content gets the width
+- The Open link on due-date and overdue notices goes to the loans page
+  with that loan picked out, instead of a missing page
+- The librarian overview shows today at the desk: issues, returns, loans
+  out, overdue, holds to collect and unpaid fines, with the hold shelf and
+  the most overdue loans; the faculty overview lists each course's units
+  and their approved reading
+- Settling a fine that does not exist now answers not found, not
+  already settled
 
 ## 2026-11-13 - Error pages and operations
 
