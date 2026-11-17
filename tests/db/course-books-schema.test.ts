@@ -20,7 +20,7 @@ afterAll(async () => {
 });
 
 let seq = 0;
-const course = async (code = `UE24CS342B${String(++seq).padStart(2, "0")}${Date.now() % 1000}`) => {
+const course = async (code = `UE99CS342B${String(++seq).padStart(2, "0")}${Date.now() % 1000}`) => {
   const [result] = await db.query<ResultSetHeader>(
     "INSERT INTO courses (course_code, title, dept_id, semester, credits) VALUES (?, 'Elective', ?, 6, 4)",
     [code.slice(0, 16), deptId],
@@ -38,7 +38,9 @@ const prescribe = (courseId: number, bookId: number, role: string, position: num
 
 describe("courses", () => {
   it("accepts the thirteen-character elective codes of the 2026 syllabus", async () => {
-    const id = await course(`UE24CS342BA${10 + (Date.now() % 80)}`);
+    // same shape as UE24CS342BA10, but a year the real syllabus (loaded by the
+    // seed tests into this shared schema) never uses, so the code cannot clash
+    const id = await course(`UE99CS342BA${10 + (Date.now() % 80)}`);
     expect(id).toBeGreaterThan(0);
   });
 
