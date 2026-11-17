@@ -2,6 +2,11 @@
 // before it serves a single request.
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  // Node-only setup lives in its own file so the edge build never sees node:net
+  const { configureNetwork } = await import("./instrumentation-node");
+  configureNetwork();
+
   const { env } = await import("@/lib/config/env");
   env();
 }
