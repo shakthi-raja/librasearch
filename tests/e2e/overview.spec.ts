@@ -32,12 +32,15 @@ test.describe("faculty overview", () => {
 test.describe("a notice about a loan", () => {
   test.use({ storageState: storageFor("student") });
 
-  test("opens the loans page with that loan picked out", async ({ page }) => {
-    await page.goto("/notices");
-    const open = page.locator('a[href^="/student/loans/"]').first();
-    const href = await open.getAttribute("href");
-    const loanId = href?.split("/").pop();
-    await open.click();
+  test("its loan address opens the loans page with that loan picked out", async ({ page }) => {
+    // due-date notices link to /student/loans/<id>; whether the seed made one
+    // today depends on the hour it ran, so take a loan id from the page itself
+    await page.goto("/student");
+    const row = page.locator('li[id^="loan-"]').first();
+    const loanId = (await row.getAttribute("id"))?.replace("loan-", "");
+    expect(loanId).toMatch(/^\d+$/);
+
+    await page.goto(`/student/loans/${loanId}`);
     await expect(page).toHaveURL(new RegExp(`/student\\?loan=${loanId}`));
     await expect(page.locator(`#loan-${loanId}`)).toHaveAttribute("data-picked", "true");
   });
