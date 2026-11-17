@@ -85,6 +85,7 @@
   --dur-long: 420ms;
 
   --container: 1440px;
+  /* 40px edges on wide screens, 16px on phones so the content gets the width */
   --gutter: 40px;
   --gap-columns: 32px;
   --bar-height: 64px;
@@ -104,6 +105,12 @@
   --display-weight: 600;
   --body-weight: 400;
   --rule-hair: 1px;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --gutter: 16px;
+  }
 }
 
 /*

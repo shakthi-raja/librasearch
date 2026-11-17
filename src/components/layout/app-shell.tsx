@@ -4,6 +4,7 @@ import { signOutAction } from "@/server/actions/sign-out";
 import type { SessionUser } from "@/server/services/auth";
 import { CommandPalette } from "./command-palette";
 import { LiveEvents } from "./live-events";
+import { MobileMenu } from "./mobile-menu";
 import { ModeToggle } from "./mode-toggle";
 import { NAV, ROLE_LABEL } from "./nav";
 import { NavLinks } from "./nav-links";
@@ -18,17 +19,39 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       <header className="sticky top-0 z-[var(--z-sticky-nav)] border-b border-ink bg-paper">
         <div className="container-app flex h-[var(--bar-height)] items-center gap-6">
           <Wordmark />
-          <nav aria-label={`${ROLE_LABEL[user.role]} sections`} className="min-w-0 flex-1">
+          {/* wide screens list the sections inline; narrow ones fold them into the menu */}
+          <nav
+            aria-label={`${ROLE_LABEL[user.role]} sections`}
+            className="hidden min-w-0 flex-1 min-[1100px]:block"
+          >
             <NavLinks items={NAV[user.role]} />
           </nav>
-          <div className="flex items-center gap-2">
-            <p className="hidden text-right text-sm leading-tight sm:block">
+          <div className="ml-auto flex items-center gap-2 min-[1100px]:ml-0">
+            <p className="hidden text-right text-sm leading-tight xl:block">
               <span className="block font-medium text-ink">{user.fullName}</span>
               <span className="block text-muted">{ROLE_LABEL[user.role]}</span>
             </p>
             <CommandPalette role={user.role} />
+            <MobileMenu
+              items={NAV[user.role]}
+              label={`${ROLE_LABEL[user.role]} sections`}
+              className="min-[1100px]:hidden"
+              header={
+                <p className="text-sm leading-tight">
+                  <span className="block font-medium text-ink">{user.fullName}</span>
+                  <span className="block text-muted">{ROLE_LABEL[user.role]}</span>
+                </p>
+              }
+              footer={
+                <form action={signOutAction} className="sm:hidden">
+                  <button type="submit" className="btn w-full justify-center">
+                    Sign out
+                  </button>
+                </form>
+              }
+            />
             <ModeToggle />
-            <form action={signOutAction}>
+            <form action={signOutAction} className="max-sm:hidden">
               <button type="submit" className="btn">
                 Sign out
               </button>
