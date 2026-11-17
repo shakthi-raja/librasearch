@@ -7,6 +7,8 @@ Notable changes to LibraSearch, newest first.
 - On phones and small tablets the top bar folds its sections into a Menu
   button, so Sign in, every section and Sign out are always reachable
 - Narrower page edges on phones, so content gets the width
+- Outgoing connections get two seconds per address, so Google sign-in
+  works on slow networks such as campus Wi-Fi
 - The Open link on due-date and overdue notices goes to the loans page
   with that loan picked out, instead of a missing page
 - The librarian overview shows today at the desk: issues, returns, loans
