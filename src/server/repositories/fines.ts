@@ -76,6 +76,12 @@ export async function settleFine(
           );
 
     if (result.affectedRows === 0) {
+      // nothing changed: tell a missing fine apart from one already settled
+      const [rows] = await connection.query<RowDataPacket[]>(
+        "SELECT status FROM fines WHERE fine_id = ?",
+        [input.fineId],
+      );
+      if (rows.length === 0) throw new AppError("NOT_FOUND", "No fine has that id.");
       throw new AppError("CONFLICT", "That fine is already settled.");
     }
   });
