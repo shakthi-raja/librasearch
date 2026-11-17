@@ -7,6 +7,8 @@ Notable changes to LibraSearch, newest first.
 - On phones and small tablets the top bar folds its sections into a Menu
   button, so Sign in, every section and Sign out are always reachable
 - Narrower page edges on phones, so content gets the width
+- The seed no longer leaves copies on the shelf while members wait for
+  them: such copies go to the first hold, as a return at the desk would
 - Outgoing connections get two seconds per address, so Google sign-in
   works on slow networks such as campus Wi-Fi
 - The Open link on due-date and overdue notices goes to the loans page

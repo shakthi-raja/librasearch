@@ -512,6 +512,9 @@ export async function seedActivity(
     holds++;
   }
 
+  // the history above returns copies without the desk's hand-off to the queue
+  await handStrandedCopies(db);
+
   // overdue loans start owing today, and due or late loans get their notices
   await db.query("CALL sp_accrue_fines()");
   await db.query("CALL sp_send_due_notices()");
@@ -617,4 +620,51 @@ export async function seedActivity(
     requests,
     searches,
   };
+}
+
+/**
+ * A copy never sits on the shelf while someone waits for its book: at the
+ * desk a return hands it to the first hold. Copies the seeded history left on
+ * the shelf get the same hand-off through sp_allocate_copy, and the member
+ * gets the notice the desk would send. Returns the holds made ready.
+ */
+export async function handStrandedCopies(db: Connection, onlyBooks?: number[]): Promise<number> {
+  const [copies] = await db.query<RowDataPacket[]>(
+    `SELECT c.copy_id
+       FROM copies c
+       JOIN editions e ON e.edition_id = c.edition_id
+      WHERE c.status = 'AVAILABLE'
+        AND c.loan_policy <> 'REFERENCE_ONLY'
+        AND c.barcode NOT IN (?)
+        AND EXISTS (SELECT 1 FROM holds h WHERE h.book_id = e.book_id AND h.status = 'WAITING')
+        AND (? IS NULL OR e.book_id IN (?))
+      ORDER BY c.copy_id`,
+    [[...RESERVED_BARCODES], onlyBooks ? 1 : null, onlyBooks?.length ? onlyBooks : [0]],
+  );
+  let ready = 0;
+  for (const copy of copies) {
+    await db.query("CALL sp_allocate_copy(?)", [copy.copy_id]);
+    const [[hold]] = await db.query<RowDataPacket[]>(
+      `SELECT h.member_id, h.pickup_by, b.title
+         FROM holds h JOIN books b ON b.book_id = h.book_id
+        WHERE h.ready_copy_id = ? AND h.status = 'READY'`,
+      [copy.copy_id],
+    );
+    if (!hold) continue;
+    const pickup = new Date(hold.pickup_by).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, body, link)
+       VALUES (?, 'HOLD_READY', 'Your hold is ready', ?, '/student')`,
+      [hold.member_id, `${hold.title} is waiting for you on the hold shelf until ${pickup}.`],
+    );
+    ready++;
+  }
+  return ready;
 }
