@@ -12,8 +12,10 @@ export const metadata: Metadata = { title: "Your loans" };
 
 const DAY = 86_400_000;
 
-export default async function StudentHomePage() {
+export default async function StudentHomePage({ searchParams }: PageProps<"/student">) {
   const user = await requireUser("STUDENT", "FACULTY");
+  // a notice's link names the loan it is about, so that loan is picked out
+  const picked = Number((await searchParams).loan);
   const [{ overview, loans }, holds] = await Promise.all([
     getMemberDashboard(user.userId, user.role),
     getMemberHolds(user.userId, user.role),
@@ -77,7 +79,12 @@ export default async function StudentHomePage() {
                   : "No renewals left.";
 
               return (
-                <li key={loan.loanId} className="grid gap-[var(--space-sm)] py-[var(--space-lg)]">
+                <li
+                  key={loan.loanId}
+                  id={`loan-${loan.loanId}`}
+                  data-picked={loan.loanId === picked ? "true" : undefined}
+                  className="grid scroll-mt-[calc(var(--bar-height)+var(--space-md))] gap-[var(--space-sm)] py-[var(--space-lg)] data-[picked=true]:-mx-[var(--space-sm)] data-[picked=true]:rounded-[var(--radius-card)] data-[picked=true]:bg-paper-3 data-[picked=true]:px-[var(--space-sm)]"
+                >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-md)] gap-y-1">
                     <h2 className="text-lg">{loan.title}</h2>
                     <p className="figure text-sm text-ink-2">{loan.barcode}</p>
